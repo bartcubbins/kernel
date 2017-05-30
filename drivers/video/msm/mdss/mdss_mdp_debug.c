@@ -988,7 +988,7 @@ void mdss_mdp_debug_mid(u32 mid)
 			len = get_dump_range(&xlog_node->offset,
 				blk_base->max_offset);
 			addr = blk_base->base + xlog_node->offset.start;
-			pr_info("%s: mid:%d range_base=0x%p start=0x%x end=0x%x\n",
+			pr_info("%s: mid:%d range_base=0x%pK start=0x%x end=0x%x\n",
 				xlog_node->range_name, mid, addr,
 				xlog_node->offset.start, xlog_node->offset.end);
 
@@ -1134,7 +1134,9 @@ static void __dump_mixer(struct seq_file *s, struct mdss_mdp_mixer *mixer)
 		return;
 
 	seq_printf(s, "\n%s Mixer #%d  res=%dx%d roi[%d, %d, %d, %d] %s\n",
-		mixer->type == MDSS_MDP_MIXER_TYPE_INTF ? "Intf" : "Writeback",
+		mixer->type != MDSS_MDP_MIXER_TYPE_WRITEBACK ?
+		(mixer->type != MDSS_MDP_MIXER_TYPE_INTF ?
+		 "Intf without DSPP" : "Intf") : "Writeback",
 		mixer->num, mixer->width, mixer->height,
 		mixer->roi.x, mixer->roi.y, mixer->roi.w, mixer->roi.h,
 		mixer->cursor_enabled ? "w/cursor" : "");

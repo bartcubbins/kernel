@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,6 +21,7 @@
 #include <linux/delay.h>
 #include <linux/msm_adreno_devfreq.h>
 #include <linux/of_device.h>
+#include <linux/thermal.h>
 
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
@@ -33,6 +34,7 @@
 #define KGSL_PWRFLAGS_AXI_ON   2
 #define KGSL_PWRFLAGS_IRQ_ON   3
 #define KGSL_PWRFLAGS_RETENTION_ON  4
+#define KGSL_PWRFLAGS_RESTRICT_MAX_LEVEL_JUMP   6
 
 #define UPDATE_BUSY_VAL		1000000
 
@@ -51,6 +53,12 @@
 #define KGSL_L2PC_CPU_TIMEOUT	(80 * 1000)
 
 /* Order deeply matters here because reasons. New entries go on the end */
+/* kholk: Not because reasons. This is because they wanted to
+ *        set clocks through this array by hardcoding the array position
+ *        in the damn calls. It looks like the last clock to worry about
+ *        is rbbmtimer_clk, so after that one it should be safe to add
+ *        our clocks in our favourite order.
+ */
 static const char * const clocks[] = {
 	"src_clk",
 	"core_clk",
@@ -344,6 +352,16 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 	 */
 	kgsl_pwrctrl_set_thermal_cycle(pwr, new_level);
 
+	/* Check any restriction over new level jump */
+	if (test_bit(KGSL_PWRFLAGS_RESTRICT_MAX_LEVEL_JUMP,
+		&device->pwrctrl.ctrl_flags)) {
+		if (new_level == 0 &&
+			old_level > device->pwrctrl.restrict_pwrlevel)
+			new_level = device->pwrctrl.restrict_pwrlevel;
+		else if (new_level == 0 && old_level == 0)
+			new_level = device->pwrctrl.restrict_pwrlevel;
+	}
+
 	if (new_level == old_level)
 		return;
 
@@ -575,22 +593,10 @@ static ssize_t kgsl_pwrctrl_max_pwrlevel_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n", pwr->max_pwrlevel);
 }
 
-static ssize_t kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf, size_t count)
-{	struct kgsl_device *device = kgsl_device_from_dev(dev);
-	struct kgsl_pwrctrl *pwr;
-	int ret;
-	unsigned int level = 0;
-
-	if (device == NULL)
-		return 0;
-
-	pwr = &device->pwrctrl;
-
-	ret = kgsl_sysfs_store(buf, &level);
-	if (ret)
-		return ret;
+static void kgsl_pwrctrl_min_pwrlevel_set(struct kgsl_device *device,
+					int level)
+{
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 
 	mutex_lock(&device->mutex);
 	if (level > pwr->num_pwrlevels - 2)
@@ -606,6 +612,24 @@ static ssize_t kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
 	kgsl_pwrctrl_pwrlevel_change(device, pwr->active_pwrlevel);
 
 	mutex_unlock(&device->mutex);
+}
+
+static ssize_t kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct kgsl_device *device = kgsl_device_from_dev(dev);
+	int ret;
+	unsigned int level = 0;
+
+	if (device == NULL)
+		return 0;
+
+	ret = kgsl_sysfs_store(buf, &level);
+	if (ret)
+		return ret;
+
+	kgsl_pwrctrl_min_pwrlevel_set(device, level);
 
 	return count;
 }
@@ -649,23 +673,12 @@ static int _get_nearest_pwrlevel(struct kgsl_pwrctrl *pwr, unsigned int clock)
 	return -ERANGE;
 }
 
-static ssize_t kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf, size_t count)
+static void kgsl_pwrctrl_max_clock_set(struct kgsl_device *device, int val)
 {
-	struct kgsl_device *device = kgsl_device_from_dev(dev);
 	struct kgsl_pwrctrl *pwr;
-	unsigned int val = 0;
-	int level, ret;
-
-	if (device == NULL)
-		return 0;
+	int level;
 
 	pwr = &device->pwrctrl;
-
-	ret = kgsl_sysfs_store(buf, &val);
-	if (ret)
-		return ret;
 
 	mutex_lock(&device->mutex);
 	level = _get_nearest_pwrlevel(pwr, val);
@@ -700,21 +713,37 @@ static ssize_t kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
 	if (pwr->sysfs_pwr_limit)
 		kgsl_pwr_limits_set_freq(pwr->sysfs_pwr_limit,
 					pwr->pwrlevels[level].gpu_freq);
-	return count;
+	return;
 
 err:
 	mutex_unlock(&device->mutex);
+}
+
+static ssize_t kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct kgsl_device *device = kgsl_device_from_dev(dev);
+	unsigned int val = 0;
+	int ret;
+
+	if (device == NULL)
+		return 0;
+
+	ret = kgsl_sysfs_store(buf, &val);
+	if (ret)
+		return ret;
+
+	kgsl_pwrctrl_max_clock_set(device, val);
+
 	return count;
 }
 
-static ssize_t kgsl_pwrctrl_max_gpuclk_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
+static unsigned int kgsl_pwrctrl_max_clock_get(struct kgsl_device *device)
 {
-
-	struct kgsl_device *device = kgsl_device_from_dev(dev);
 	struct kgsl_pwrctrl *pwr;
 	unsigned int freq;
+
 	if (device == NULL)
 		return 0;
 	pwr = &device->pwrctrl;
@@ -728,7 +757,17 @@ static ssize_t kgsl_pwrctrl_max_gpuclk_show(struct device *dev,
 			(TH_HZ - pwr->thermal_timeout) * (hfreq / TH_HZ);
 	}
 
-	return snprintf(buf, PAGE_SIZE, "%d\n", freq);
+	return freq;
+}
+
+static ssize_t kgsl_pwrctrl_max_gpuclk_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{
+	struct kgsl_device *device = kgsl_device_from_dev(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+		kgsl_pwrctrl_max_clock_get(device));
 }
 
 static ssize_t kgsl_pwrctrl_gpuclk_store(struct device *dev,
@@ -911,9 +950,14 @@ static ssize_t kgsl_pwrctrl_gpu_available_frequencies_show(
 	if (device == NULL)
 		return 0;
 	pwr = &device->pwrctrl;
-	for (index = 0; index < pwr->num_pwrlevels - 1; index++)
-		num_chars += snprintf(buf + num_chars, PAGE_SIZE, "%d ",
-		pwr->pwrlevels[index].gpu_freq);
+	for (index = 0; index < pwr->num_pwrlevels - 1; index++) {
+		num_chars += scnprintf(buf + num_chars,
+			PAGE_SIZE - num_chars - 1,
+			"%d ", pwr->pwrlevels[index].gpu_freq);
+		/* One space for trailing null and another for the newline */
+		if (num_chars >= PAGE_SIZE - 2)
+			break;
+	}
 	buf[num_chars++] = '\n';
 	return num_chars;
 }
@@ -1305,9 +1349,40 @@ static const struct device_attribute *pwrctrl_attr_list[] = {
 	NULL
 };
 
+struct sysfs_link {
+	const char *src;
+	const char *dst;
+};
+
+static struct sysfs_link link_names[] = {
+	{ "gpu_model", "gpu_model",},
+	{ "gpu_busy_percentage", "gpu_busy",},
+	{ "min_clock_mhz", "gpu_min_clock",},
+	{ "max_clock_mhz", "gpu_max_clock",},
+	{ "clock_mhz", "gpu_clock",},
+	{ "freq_table_mhz", "gpu_freq_table",},
+	{ "temp", "gpu_tmu",},
+};
+
 int kgsl_pwrctrl_init_sysfs(struct kgsl_device *device)
 {
-	return kgsl_create_device_sysfs_files(device->dev, pwrctrl_attr_list);
+	int i, ret;
+
+	ret = kgsl_create_device_sysfs_files(device->dev, pwrctrl_attr_list);
+	if (ret)
+		return ret;
+
+	device->gpu_sysfs_kobj = kobject_create_and_add("gpu", kernel_kobj);
+	if (IS_ERR_OR_NULL(device->gpu_sysfs_kobj))
+		return (device->gpu_sysfs_kobj == NULL) ?
+		-ENOMEM : PTR_ERR(device->gpu_sysfs_kobj);
+
+	for (i = 0; i < ARRAY_SIZE(link_names); i++)
+		kgsl_gpu_sysfs_add_link(device->gpu_sysfs_kobj,
+			&device->dev->kobj, link_names[i].src,
+			link_names[i].dst);
+
+	return 0;
 }
 
 void kgsl_pwrctrl_uninit_sysfs(struct kgsl_device *device)
@@ -1761,9 +1836,10 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 		pwr->grp_clks[0] = pwr->grp_clks[1];
 
 	if (of_property_read_u32(pdev->dev.of_node, "qcom,deep-nap-timeout",
-		&pwr->deep_nap_timeout))
-		pwr->deep_nap_timeout = 20;
+		&result))
+		result = 20;
 
+	pwr->deep_nap_timeout = msecs_to_jiffies(result);
 	pwr->gx_retention = of_property_read_bool(pdev->dev.of_node,
 						"qcom,gx-retention");
 	if (pwr->gx_retention) {
@@ -1783,6 +1859,11 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 					"bimc_gpu_clk");
 
 	pwr->power_flags = BIT(KGSL_PWRFLAGS_RETENTION_ON);
+
+	if (!of_property_read_u32(pdev->dev.of_node, "qcom,restrict-pwrlevel",
+				&pwr->restrict_pwrlevel))
+		device->pwrctrl.ctrl_flags |=
+			BIT(KGSL_PWRFLAGS_RESTRICT_MAX_LEVEL_JUMP);
 
 	if (pwr->num_pwrlevels == 0) {
 		KGSL_PWR_ERR(device, "No power levels are defined\n");
@@ -1929,6 +2010,10 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 	setup_timer(&pwr->deep_nap_timer, kgsl_deep_nap_timer,
 			(unsigned long) device);
 	devfreq_vbif_register_callback(kgsl_get_bw);
+
+	/* temperature sensor name */
+	of_property_read_string(pdev->dev.of_node, "qcom,tsens-name",
+		&pwr->tsens_name);
 
 	return result;
 }
@@ -2128,6 +2213,7 @@ static int _wake(struct kgsl_device *device)
 {
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	int status = 0;
+	bool limit_max_pwrlevel = false;
 
 	switch (device->state) {
 	case KGSL_STATE_SUSPEND:
@@ -2150,6 +2236,16 @@ static int _wake(struct kgsl_device *device)
 		kgsl_pwrctrl_axi(device, KGSL_PWRFLAGS_ON);
 		kgsl_pwrscale_wake(device);
 		kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
+		/*
+		 * Check any restriction on max power level, clk_set_rate()
+		 * wil set based on the active_pwrlevel.
+		 */
+		if (test_bit(KGSL_PWRFLAGS_RESTRICT_MAX_LEVEL_JUMP,
+					&pwr->ctrl_flags) &&
+				(pwr->active_pwrlevel == 0)) {
+			pwr->active_pwrlevel = pwr->restrict_pwrlevel;
+			limit_max_pwrlevel = true;
+		}
 		/* fall through */
 	case KGSL_STATE_DEEP_NAP:
 		pm_qos_update_request(&device->pwrctrl.pm_qos_req_dma,
@@ -2175,7 +2271,10 @@ static int _wake(struct kgsl_device *device)
 		kgsl_pwrctrl_pwrlevel_change_settings(device, 0);
 		kgsl_pwrctrl_pwrlevel_change_settings(device, 1);
 		/* All settings for power level transitions are complete*/
-		pwr->previous_pwrlevel = pwr->active_pwrlevel;
+		if (limit_max_pwrlevel)
+			pwr->previous_pwrlevel = 0;
+		else
+			pwr->previous_pwrlevel = pwr->active_pwrlevel;
 		mod_timer(&device->idle_timer, jiffies +
 				device->pwrctrl.interval_timeout);
 		del_timer_sync(&device->pwrctrl.deep_nap_timer);
@@ -2259,7 +2358,7 @@ _nap(struct kgsl_device *device)
 		kgsl_pwrscale_update_stats(device);
 
 		mod_timer(&device->pwrctrl.deep_nap_timer, jiffies +
-			msecs_to_jiffies(device->pwrctrl.deep_nap_timeout));
+			device->pwrctrl.deep_nap_timeout);
 
 		kgsl_pwrctrl_clk(device, KGSL_PWRFLAGS_OFF, KGSL_STATE_NAP);
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_NAP);

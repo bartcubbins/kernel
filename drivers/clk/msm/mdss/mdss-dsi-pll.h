@@ -16,6 +16,8 @@
 #define MAX_DSI_PLL_EN_SEQS	10
 
 #define DSI_PHY_PLL_UNIPHY_PLL_GLB_CFG		(0x0020)
+#define DSI_PHY_PLL_UNIPHY_PLL_LKDET_CFG0	(0x005c)
+#define DSI_PHY_PLL_UNIPHY_PLL_LKDET_CFG1	(0x0060)
 #define DSI_PHY_PLL_UNIPHY_PLL_LKDET_CFG2	(0x0064)
 #define DSI_PHY_PLL_UNIPHY_PLL_TEST_CFG		(0x0068)
 #define DSI_PHY_PLL_UNIPHY_PLL_CAL_CFG1		(0x0070)
@@ -109,6 +111,7 @@ enum handoff pll_20nm_vco_handoff(struct clk *c);
 int pll_20nm_vco_prepare(struct clk *c);
 void pll_20nm_vco_unprepare(struct clk *c);
 int pll_20nm_vco_enable_seq(struct mdss_pll_resources *dsi_pll_res);
+void pll_20nm_config_powerdown(void __iomem *pll_base);
 
 int set_bypass_lp_div_mux_sel(struct mux_clk *clk, int sel);
 int set_shadow_bypass_lp_div_mux_sel(struct mux_clk *clk, int sel);

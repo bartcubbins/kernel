@@ -3,6 +3,12 @@ dtb-$(CONFIG_MACH_SONY_DORA)            += msm8996-v3.0-pmi8996-tone-dora_generi
 dtb-$(CONFIG_MACH_SONY_DORA)            += msm8996-v3-pmi8996-tone-dora_generic.dtb
 dtb-$(CONFIG_MACH_SONY_KAGURA)          += msm8996-v3.0-pmi8996-tone-kagura_generic.dtb
 dtb-$(CONFIG_MACH_SONY_KAGURA)          += msm8996-v3-pmi8996-tone-kagura_generic.dtb
+dtb-$(CONFIG_MACH_SONY_KEYAKI)          += msm8996-v3.0-pmi8996-tone-keyaki_generic.dtb
+dtb-$(CONFIG_MACH_SONY_KEYAKI)          += msm8996-v3-pmi8996-tone-keyaki_generic.dtb
+
+# MSM8956/MSM8976
+dtb-$(CONFIG_MACH_SONY_SUZU)            += msm8956-v1.1-loire-suzu_generic.dtb
+dtb-$(CONFIG_MACH_SONY_KUGO)            += msm8956-v1.1-loire-kugo_generic.dtb
 
 ifneq ($(CONFIG_ARCH_SONY_TONE),y)
 dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
@@ -150,6 +156,9 @@ dtb-$(CONFIG_ARCH_MDM9640) += mdm9640-sim.dtb \
 	mdm9640-v2-mtp.dtb \
 	mdm9640-v2-pmk8001-mtp.dtb \
 
+# MSM8939/MSM8936
+dtb-$(CONFIG_MACH_SONY_TULIP)		+= msm8936-kanuti_tulip.dtb
+dtb-$(CONFIG_MACH_SONY_TULIP)		+= msm8939-kanuti_tulip.dtb
 
 dtb-$(CONFIG_ARCH_MDMCALIFORNIUM) += mdmcalifornium-sim.dtb \
 	mdmcalifornium-rumi.dtb \
@@ -201,7 +210,8 @@ dtb-$(CONFIG_ARCH_MSM8920) += msm8920-pmi8937-cdp.dtb \
 	msm8920-pmi8950-cdp.dtb \
 	msm8920-pmi8950-mtp.dtb \
 	msm8920-pmi8937-rcm.dtb \
-	msm8920-pmi8950-rcm.dtb
+	msm8920-pmi8950-rcm.dtb \
+	msm8920-pmi8940-qrd-sku7.dtb
 
 dtb-$(CONFIG_ARCH_MSM8940) += msm8940-pmi8937-cdp.dtb \
 	msm8940-pmi8937-mtp.dtb \
@@ -237,11 +247,6 @@ dtb-$(CONFIG_ARCH_MDM9607) += mdm9607-rumi.dtb \
 	mdm9607-mtp.dtb \
 	mdm9607-rcm.dtb \
 	mdm9607-mtp-sdcard.dtb
-
-dtb-$(CONFIG_ARCH_MSM8916) += msm8952-qrd-skum.dtb \
-       msm8952-cdp.dtb \
-       msm8952-ext-codec-cdp.dtb \
-       msm8952-mtp.dtb
 
 dtb-$(CONFIG_ARCH_MSM8909) += msm8909-pm8916-mtp.dtb \
 	msm8909w-wtp.dtb \

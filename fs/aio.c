@@ -229,6 +229,7 @@ static int __init aio_setup(void)
 	aio_mnt = kern_mount(&aio_fs);
 	if (IS_ERR(aio_mnt))
 		panic("Failed to create aio fs mount.");
+	aio_mnt->mnt_flags |= MNT_NOEXEC;
 
 	if (bdi_init(&aio_fs_backing_dev_info))
 		panic("Failed to init aio fs backing dev info.");
@@ -1560,7 +1561,9 @@ long do_io_submit(aio_context_t ctx_id, long nr,
 	struct kioctx *ctx;
 	long ret = 0;
 	int i = 0;
+#ifndef CONFIG_AIO_SSD_ONLY
 	struct blk_plug plug;
+#endif
 
 	if (unlikely(nr < 0))
 		return -EINVAL;
@@ -1577,7 +1580,9 @@ long do_io_submit(aio_context_t ctx_id, long nr,
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_AIO_SSD_ONLY
 	blk_start_plug(&plug);
+#endif
 
 	/*
 	 * AKPM: should this return a partial result if some of the IOs were
@@ -1601,7 +1606,9 @@ long do_io_submit(aio_context_t ctx_id, long nr,
 		if (ret)
 			break;
 	}
+#ifndef CONFIG_AIO_SSD_ONLY
 	blk_finish_plug(&plug);
+#endif
 
 	percpu_ref_put(&ctx->users);
 	return i ? i : ret;

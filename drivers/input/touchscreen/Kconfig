@@ -1023,17 +1023,6 @@ config TOUCHSCREEN_FT5X06_GESTURE
 
          If unsure, say N.
 
-config TOUCHSCREEN_MSTAR21XX
-	tristate "mstar touchscreens"
-	depends on I2C
-	help
-	 Say Y here if you have a mstar touchscreen.
-
-	 If unsure, say N.
-
-	 To compile this driver as a module, choose M here: the
-	 module will be called msg21xx_ts.
-
 config SECURE_TOUCH
 	bool "Secure Touch"
 	depends on (TOUCHSCREEN_SYNAPTICS_I2C_RMI4 || \
@@ -1155,5 +1144,8 @@ config TOUCHSCREEN_MAXIM_STI
 	  module will be called maxim_sti.
 
 source "drivers/input/touchscreen/gt9xx/Kconfig"
+
+source "drivers/input/touchscreen/cyttsp4/Kconfig"
+source "drivers/input/touchscreen/cyttsp5/Kconfig"
 
 endif

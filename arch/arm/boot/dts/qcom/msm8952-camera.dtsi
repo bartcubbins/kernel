@@ -151,8 +151,9 @@
 		interrupts = <0 55 0>;
 		interrupt-names = "ispif";
 		qcom,num-isps = <0x2>;
-		vfe0_vdd_supply = <&gdsc_vfe>;
-		vfe1_vdd_supply = <&gdsc_vfe1>;
+		vfe0-vdd-supply = <&gdsc_vfe>;
+		vfe1-vdd-supply = <&gdsc_vfe1>;
+		qcom,vdd-names = "vfe0-vdd", "vfe1-vdd";
 		clocks = <&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_csi0_clk_src>,
 			<&clock_gcc clk_gcc_camss_csi0_clk>,
@@ -335,7 +336,7 @@
 		compatible = "qcom,jpeg";
 		reg = <0x1b1c000 0x400>,
 			<0x1b60000 0xc30>;
-		reg-names = "jpeg";
+		reg-names = "jpeg_hw","jpeg_vbif";
 		interrupts = <0 59 0>;
 		interrupt-names = "jpeg";
 		vdd-supply = <&gdsc_jpeg>;
@@ -347,10 +348,15 @@
 			<&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ahb_clk>;
 		qcom,clock-rates = <266670000 0 0 0 0>;
-		qos-reg-settings = <0x28 0x0000550E>,
-			<0xC8 0x00005555>;
-		vbif-reg-settings = <0xC0 0x10101000>,
+		qcom,qos-reg-settings = <0x28 0x0000000E>,
+			<0xC8 0x00000000>;
+		qcom,vbif-reg-settings = <0xC0 0x10101000>,
 			<0xB0 0x10100010>;
+		qcom,msm-bus,name = "msm_camera_jpeg0";
+		qcom,msm-bus,num-cases = <2>;
+		qcom,msm-bus,num-paths = <1>;
+		qcom,msm-bus,vectors-KBps = <62 512 0 0>,
+			<62 512 800000 800000>;
 	};
 
 	qcom,irqrouter@1b00000 {

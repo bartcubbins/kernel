@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -23,8 +23,8 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/tlv.h>
-#include <btfm_slim.h>
-#include <btfm_slim_wcn3990.h>
+#include "btfm_slim.h"
+#include "btfm_slim_wcn3990.h"
 
 int btfm_slim_write(struct btfmslim *btfmslim,
 		uint16_t reg, int bytes, void *src, uint8_t pgd)
@@ -509,7 +509,6 @@ static int btfm_slim_remove(struct slim_device *slim)
 	BTFMSLIM_DBG("");
 	mutex_destroy(&btfm_slim->io_lock);
 	mutex_destroy(&btfm_slim->xfer_lock);
-	kfree(btfm_slim);
 	snd_soc_unregister_codec(&slim->dev);
 
 	BTFMSLIM_DBG("slim_remove_device() - btfm_slim->slim_ifd");
@@ -517,6 +516,8 @@ static int btfm_slim_remove(struct slim_device *slim)
 
 	BTFMSLIM_DBG("slim_remove_device() - btfm_slim->slim_pgd");
 	slim_remove_device(slim);
+
+	kfree(btfm_slim);
 	return 0;
 }
 

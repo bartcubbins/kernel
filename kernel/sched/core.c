@@ -3964,7 +3964,14 @@ static void remove_task_from_group(struct task_struct *p)
 
 	if (empty_group) {
 		list_del(&grp->list);
+		/*
+		 * RCU, kswapd etc tasks can get woken up from
+		 * call_rcu(). As the wakeup path also acquires
+		 * the related_thread_group_lock, drop it here.
+		 */
+		write_unlock(&related_thread_group_lock);
 		call_rcu(&grp->rcu, free_related_thread_group);
+		write_lock(&related_thread_group_lock);
 	}
 }
 
@@ -5636,6 +5643,9 @@ prepare_task_switch(struct rq *rq, struct task_struct *prev,
 #ifdef CONFIG_MSM_APP_SETTINGS
 	if (use_app_setting)
 		switch_app_setting_bit(prev, next);
+
+	if (use_32bit_app_setting || use_32bit_app_setting_pro)
+		switch_32bit_app_setting_bit(prev, next);
 #endif
 }
 
@@ -5858,6 +5868,36 @@ unsigned long nr_iowait_cpu(int cpu)
 	struct rq *this = cpu_rq(cpu);
 	return atomic_read(&this->nr_iowait);
 }
+
+#ifdef CONFIG_CPU_QUIET
+u64 nr_running_integral(unsigned int cpu)
+{
+	unsigned int seqcnt;
+	u64 integral;
+	struct rq *q;
+
+	if (cpu >= nr_cpu_ids)
+		return 0;
+
+	q = cpu_rq(cpu);
+
+	/*
+	 * Update average to avoid reading stalled value if there were
+	 * no run-queue changes for a long time. On the other hand if
+	 * the changes are happening right now, just read current value
+	 * directly.
+	 */
+
+	seqcnt = read_seqcount_begin(&q->ave_seqcnt);
+	integral = do_nr_running_integral(q);
+	if (read_seqcount_retry(&q->ave_seqcnt, seqcnt)) {
+		read_seqcount_begin(&q->ave_seqcnt);
+		integral = q->nr_running_integral;
+	}
+
+	return integral;
+}
+#endif
 
 void get_iowait_load(unsigned long *nr_waiters, unsigned long *load)
 {
@@ -8730,6 +8770,7 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
 		set_window_start(rq);
 		raw_spin_unlock_irqrestore(&rq->lock, flags);
 		rq->calc_load_update = calc_load_update;
+		rq->next_balance = jiffies;
 		break;
 
 	case CPU_ONLINE:

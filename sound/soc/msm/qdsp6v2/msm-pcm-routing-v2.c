@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1978,6 +1978,11 @@ static int msm_routing_ec_ref_rx_put(struct snd_kcontrol *kcontrol,
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
 	struct snd_soc_dapm_update *update = NULL;
 
+	if (mux >= e->items) {
+		pr_err("%s: Invalid mux value %d\n", __func__, mux);
+		return -EINVAL;
+	}
+
 	mutex_lock(&routing_lock);
 	switch (ucontrol->value.integer.value[0]) {
 	case 0:
@@ -2136,6 +2141,11 @@ static int msm_routing_ext_ec_put(struct snd_kcontrol *kcontrol,
 	bool state = true;
 	uint16_t ext_ec_ref_port_id;
 	struct snd_soc_dapm_update *update = NULL;
+
+	if (mux >= e->items) {
+		pr_err("%s: Invalid mux value %d\n", __func__, mux);
+		return -EINVAL;
+	}
 
 	mutex_lock(&routing_lock);
 	msm_route_ext_ec_ref = ucontrol->value.integer.value[0];
@@ -5028,6 +5038,9 @@ static const struct snd_kcontrol_new sbus_0_rx_port_mixer_controls[] = {
 	SOC_SINGLE_EXT("QUAT_MI2S_TX", MSM_BACKEND_DAI_SLIMBUS_0_RX,
 	MSM_BACKEND_DAI_QUATERNARY_MI2S_TX, 1, 0, msm_routing_get_port_mixer,
 	msm_routing_put_port_mixer),
+	SOC_SINGLE_EXT("QUIN_MI2S_TX", MSM_BACKEND_DAI_SLIMBUS_0_RX,
+	MSM_BACKEND_DAI_QUINARY_MI2S_TX, 1, 0, msm_routing_get_port_mixer,
+	msm_routing_put_port_mixer),
 	SOC_SINGLE_EXT("INTERNAL_BT_SCO_TX", MSM_BACKEND_DAI_SLIMBUS_0_RX,
 	MSM_BACKEND_DAI_INT_BT_SCO_TX, 1, 0, msm_routing_get_port_mixer,
 	msm_routing_put_port_mixer),
@@ -6118,7 +6131,7 @@ int msm_routing_get_rms_value_control(struct snd_kcontrol *kcontrol,
 	int *update_param_value;
 	uint32_t param_length = sizeof(uint32_t);
 	uint32_t param_payload_len = RMS_PAYLOAD_LEN * sizeof(uint32_t);
-	param_value = kzalloc(param_length, GFP_KERNEL);
+	param_value = kzalloc(param_length + param_payload_len, GFP_KERNEL);
 	if (!param_value) {
 		pr_err("%s, param memory alloc failed\n", __func__);
 		return -ENOMEM;
@@ -6788,6 +6801,9 @@ static const struct snd_soc_dapm_widget msm_qdsp6_widgets[] = {
 		0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("QUAT_MI2S_UL_HL",
 		"Quaternary MI2S_TX Hostless Capture",
+		0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("QUIN_MI2S_UL_HL",
+		"Quinary MI2S_TX Hostless Capture",
 		0, 0, 0, 0),
 
 	SND_SOC_DAPM_AIF_IN("PRI_TDM_RX_0_DL_HL",
@@ -8677,6 +8693,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"PRI_MI2S_RX", NULL, "PRI_MI2S_DL_HL"},
 	{"TERT_MI2S_RX", NULL, "TERT_MI2S_DL_HL"},
 	{"QUAT_MI2S_UL_HL", NULL, "QUAT_MI2S_TX"},
+	{"QUIN_MI2S_UL_HL", NULL, "QUIN_MI2S_TX"},
 
 	{"TERT_TDM_TX_0_UL_HL", NULL, "TERT_TDM_TX_0"},
 	{"TERT_TDM_TX_1_UL_HL", NULL, "TERT_TDM_TX_1"},
@@ -8849,6 +8866,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"SLIMBUS_0_RX Port Mixer", "SEC_MI2S_TX", "SEC_MI2S_TX"},
 	{"SLIMBUS_0_RX Port Mixer", "TERT_MI2S_TX", "TERT_MI2S_TX"},
 	{"SLIMBUS_0_RX Port Mixer", "QUAT_MI2S_TX", "QUAT_MI2S_TX"},
+	{"SLIMBUS_0_RX Port Mixer", "QUIN_MI2S_TX", "QUIN_MI2S_TX"},
 	{"SLIMBUS_0_RX Port Mixer", "INTERNAL_BT_SCO_TX", "INT_BT_SCO_TX"},
 	{"SLIMBUS_0_RX", NULL, "SLIMBUS_0_RX Port Mixer"},
 	{"AFE_PCM_RX Port Mixer", "INTERNAL_FM_TX", "INT_FM_TX"},

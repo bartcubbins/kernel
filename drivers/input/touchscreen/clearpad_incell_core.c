@@ -17,6 +17,7 @@
 
 #include <linux/platform_device.h>
 #include <linux/input.h>
+#include <linux/input/mt.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
@@ -43,8 +44,6 @@
 #ifdef CONFIG_ARM
 #include <asm/mach-types.h>
 #endif
-
-#define SYN_PCA_BLOCK_NUMBER_MAX	31
 
 #define SYN_CLEARPAD_VENDOR		0x1
 #define SYN_MAX_N_FINGERS		10
@@ -349,18 +348,6 @@ BIT_DEF(CALIBRATION_STATE_CALIBRATION_CRC,		0x02, 1);
 /*
  * Types
  */
-
-enum clearpad_infomation_attribute_kind_e {
-	PCA_DATA			= 0x00,
-	PCA_IC				= 0x01,
-	PCA_CHIP			= 0x03,
-	PCA_MODULE			= 0x05,
-};
-
-enum clearpad_infomation_kind_e {
-	PCA_NO_USE			= 0x00,
-	PCA_FW_INFO			= 0x02,
-};
 
 enum clearpad_state_e {
 	SYN_STATE_INIT,
@@ -3586,6 +3573,8 @@ static void clearpad_funcarea_initialize(struct clearpad_t *this)
 				pointer_area.y1 -= pointer_data->offset_y;
 				pointer_area.y2 -= pointer_data->offset_y;
 			}
+			input_mt_init_slots(this->input,
+						this->extents.n_fingers, 0);
 			input_set_abs_params(this->input, ABS_MT_TRACKING_ID,
 					0, this->extents.n_fingers, 0, 0);
 			input_set_abs_params(this->input, ABS_MT_POSITION_X,
@@ -3724,8 +3713,8 @@ static void clearpad_funcarea_down(struct clearpad_t *this,
 			break;
 		touch_major = max(cur->wx, cur->wy) + 1;
 		touch_minor = min(cur->wx, cur->wy) + 1;
-		input_report_abs(idev, ABS_MT_TRACKING_ID, cur->id);
-		input_report_abs(idev, ABS_MT_TOOL_TYPE, cur->tool);
+		input_mt_slot(idev, cur->id);
+		input_mt_report_slot_state(idev, cur->tool, true);
 		input_report_abs(idev, ABS_MT_POSITION_X, cur->x);
 		input_report_abs(idev, ABS_MT_POSITION_Y, cur->y);
 		if (this->touch_pressure_enabled)
@@ -3737,7 +3726,6 @@ static void clearpad_funcarea_down(struct clearpad_t *this,
 		if (this->touch_orientation_enabled)
 			input_report_abs(idev, ABS_MT_ORIENTATION,
 				 (cur->wx > cur->wy));
-		input_mt_sync(idev);
 		break;
 	case SYN_FUNCAREA_BUTTON:
 		LOG_EVENT(this, "button\n");
@@ -3767,7 +3755,8 @@ static void clearpad_funcarea_up(struct clearpad_t *this,
 		LOG_EVENT(this, "%s up\n", valid ? "pt" : "unused pt");
 		if (!valid)
 			break;
-		input_mt_sync(idev);
+		input_mt_slot(idev, pointer->cur.id);
+		input_mt_report_slot_state(idev, pointer->cur.tool, false);
 		break;
 	case SYN_FUNCAREA_BUTTON:
 		LOG_EVENT(this, "button up\n");
@@ -7513,6 +7502,7 @@ end:
 	return rc;
 }
 
+/* need LOCK(&this->lock) */
 static int clearpad_read_pca_block(struct clearpad_t *this,
 				  u16 block_num, u8 *data)
 {
@@ -7584,6 +7574,7 @@ end:
 	return rc;
 }
 
+/* need LOCK(&this->lock) */
 static int clearpad_write_pca_block(struct clearpad_t *this,
 				  u16 block_num, u8 *data)
 {
@@ -7714,10 +7705,9 @@ static int clearpad_write_pca_block(struct clearpad_t *this,
 	UNLOCK(&this->lock);
 	rc = clearpad_wait_for_interrupt(this, &this->interrupt.for_F34,
 						this->interrupt.wait_ms);
-	if (rc) {
+	if (rc)
 		HWLOGE(this, "wait for interrupt status failed %d\n", rc);
-		LOCK(&this->lock);
-	}
+	LOCK(&this->lock);
 
 err_exit_bl:
 	/* exit bootloader mode */
@@ -7757,8 +7747,10 @@ static long clearpad_debug_pca_ioctl(struct file *file,
 
 	switch (cmd) {
 	case SYN_PCA_IOCTL_GET:
+		LOCK(&this->lock);
 		rc = clearpad_read_pca_block(this, pca_info.block_pos,
 					     pca_info.data);
+		UNLOCK(&this->lock);
 		if (rc)
 			break;
 
@@ -7769,8 +7761,10 @@ static long clearpad_debug_pca_ioctl(struct file *file,
 		}
 		break;
 	case SYN_PCA_IOCTL_SET:
+		LOCK(&this->lock);
 		rc = clearpad_write_pca_block(this, pca_info.block_pos,
 					 pca_info.data);
+		UNLOCK(&this->lock);
 		break;
 	default:
 		rc = -EINVAL;
@@ -7908,8 +7902,6 @@ static int clearpad_probe(struct platform_device *pdev)
 		}
 	}
 
-	this->post_probe.start = true;
-
 	spin_lock_init(&this->noise_det.slock);
 #ifdef CONFIG_TOUCHSCREEN_CLEARPAD_RMI_DEV
 	if (!cdata->rmi_dev) {
@@ -8029,7 +8021,7 @@ static int clearpad_probe(struct platform_device *pdev)
 		goto err_in_create_link;
 	}
 
-	if (likely(this->post_probe.start)) {
+	if (this->post_probe.start) {
 		HWLOGI(this, "schedule post probe\n");
 		schedule_delayed_work(&this->post_probe.work, 0);
 	} else {
@@ -8211,7 +8203,7 @@ static void clearpad_thread_resume_work(struct work_struct *work)
 	if (clearpad_handle_if_first_event(this) < 0)
 		LOGE(this, "failed to handle first event\n");
 
-		touchctrl_unlock_power(this, "fb_unblank");
+	touchctrl_unlock_power(this, "fb_unblank");
 
 	get_monotonic_boottime(&ts);
 	HWLOGI(this, "end thread_resume @ %ld.%06ld\n",

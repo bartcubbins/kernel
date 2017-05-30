@@ -1,4 +1,5 @@
-/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+/* arch/arm/boot/dts/qcom/msm8996-tone-kagura-common.dtsi
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
  * only version 2 as published by the Free Software Foundation.
@@ -20,9 +21,42 @@
 	somc_pinctrl: somc_pinctrl {
 		/* If variant specific default setting is needed,
 		   fill pinctrl-1 value in <variant>.dtsi */
-		pinctrl-1 = <&msm_gpio_25 &msm_gpio_47 &msm_gpio_48
+		pinctrl-1 = <&msm_gpio_25 &msm_gpio_47 &msm_gpio_47_suspend
+			&msm_gpio_48 &msm_gpio_48_suspend
 			&msm_gpio_59 &msm_gpio_60 &msm_gpio_61 &msm_gpio_78
-			&msm_gpio_104 &msm_gpio_127 &msm_gpio_131>;
+			&msm_gpio_85_suspend &msm_gpio_86_suspend &msm_gpio_104
+			&msm_gpio_127 &msm_gpio_131>;
+	};
+
+	/* I2C : BLSP3 */
+	i2c_3: i2c@7577000 { /* BLSP1 QUP2 */
+		pinctrl-1 = <&msm_gpio_47_suspend &msm_gpio_48_suspend>;
+		status = "okay";
+		tcs3490@72 {
+			compatible = "ams,tcs3490";
+			reg = <0x72>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <86 0x0>;
+			rgbcir_vdd-supply = <&pm8994_lvs1>;
+			ams,rgbcir-supply_name = "rgbcir_vdd";
+			pinctrl-names = "rgbcir_irq_active", "rgbcir_irq_suspend";
+			pinctrl-0 = <&msm_gpio_86>;
+			pinctrl-1 = <&msm_gpio_86_suspend>;
+		};
+		tof_sensor@52 {
+			compatible = "tof_sensor";
+			reg = <0x52>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <85 0x0>;
+			tof_avdd-supply = <&pm8994_lvs1>;
+			tof-supply_name = "tof_avdd";
+			pinctrl-names = "tof_irq_active", "tof_irq_suspend";
+			pinctrl-0 = <&msm_gpio_85>;
+			pinctrl-1 = <&msm_gpio_85_suspend>;
+			sony,tof-sensor-name = "VL53L0";
+			sony,tof-need-cam-on = <1>;
+			sony,tof-sensor-facing = <0>;
+		};
 	};
 
 	/* I2C : BLSP12 */
@@ -42,6 +76,7 @@
 			};
 		};
 	};
+
 };
 
 /{
@@ -50,12 +85,22 @@
 	};
 };
 
+&pmi8994_mpps {
+	/* MPP_1: USB_ID_DISCHG */
+	mpp@a000 {
+		qcom,vin-sel = <2>;		/* VDD_MSM_IO(1.8V) */
+	};
+};
 &pmi8994_fg {
 	qcom,battery-data = <&tone_kagura_batterydata>;
 	qcom,fg-iterm-ma = <150>;
 	qcom,fg-chg-iterm-ma = <150>;
 	qcom,cold-hot-jeita-hysteresis = <20 20>;
+	qcom,fg-cc-cv-threshold-mv = <4340>;
 	somc,cool-warm-jeita-hysteresis = <20 20>;
+	somc,vfloat-arrangement;
+	somc,vfloat-arrangement-threshold = <90>;
+	somc,soc-magnification = <106>;
 	somc,rated-capacity-enable;
 	somc,rated-capacity-uah = <2900000>;
 };
@@ -64,6 +109,7 @@
 	qcom,fastchg-current-ma = <2100>;
 	somc,usb-9v-current-max = <1500>;
 	qcom,float-voltage-comp = <0x08>;
+	qcom,float-voltage-mv = <4350>;
 	somc,fastchg-warm-current-ma = <800>;
 	somc,fastchg-cool-current-ma = <800>;
 	somc,thermal-engine-fastchg-current = <2100 2100 1950 1800 1000 700 500 300 300 300 300 300 300 0 0>;
@@ -76,6 +122,7 @@
 	qcom,external-typec;
 	qcom,typec-psy-name = "typec";
 	somc,typec-current-max = <2500>;
+	somc,id-polling-enabled;
 };
 
 &tlmm {
@@ -94,7 +141,7 @@
 		};
 	};
 
-	/* GPIO_47 : CAMSENSOR_I2C_SDA */
+	/* GPIO_47 : RGBC-IR & ToF I2C SDA */
 	msm_gpio_47: msm_gpio_47 {
 		mux {
 			pins = "gpio47";
@@ -109,7 +156,21 @@
 		};
 	};
 
-	/* GPIO_48 : CAMSENSOR_I2C_SCL */
+	msm_gpio_47_suspend: msm_gpio_47_suspend {
+		mux {
+			pins = "gpio47";
+			function = "blsp_i2c3";
+		};
+
+		config {
+			pins = "gpio47";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+		};
+	};
+
+	/* GPIO_48 : RGBC-IR & ToF I2C SCL */
 	msm_gpio_48: msm_gpio_48 {
 		mux {
 			pins = "gpio48";
@@ -121,6 +182,20 @@
 			drive-strength = <2>;
 			bias-disable;
 			/delete-property/ output-low;
+		};
+	};
+
+	msm_gpio_48_suspend: msm_gpio_48_suspend {
+		mux {
+			pins = "gpio48";
+			function = "blsp_i2c3";
+		};
+
+		config {
+			pins = "gpio48";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
 		};
 	};
 
@@ -186,6 +261,65 @@
 		};
 	};
 
+	/* GPIO_85 : TOF_INT */
+	msm_gpio_85: msm_gpio_85 {
+		mux {
+			pins = "gpio85";
+			function = "gpio";
+		};
+
+		config {
+			pins = "gpio85";
+			drive-strength = <2>;
+			/delete-property/ bias-disable;
+			bias-pull-up;
+			/delete-property/ output-low;
+		};
+	};
+	msm_gpio_85_suspend: msm_gpio_85_suspend {
+		mux {
+			pins = "gpio85";
+			function = "gpio";
+		};
+
+		config {
+			pins = "gpio85";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+		};
+	};
+
+	/* GPIO_86 : RGBC_IR_INT */
+	msm_gpio_86: msm_gpio_86 {
+		mux {
+			pins = "gpio86";
+			function = "gpio";
+		};
+
+		config {
+			pins = "gpio86";
+			drive-strength = <2>;
+			/delete-property/ bias-disable;
+			bias-pull-up;
+			/delete-property/ output-low;
+		};
+	};
+
+	msm_gpio_86_suspend: msm_gpio_86_suspend {
+		mux {
+			pins = "gpio86";
+			function = "gpio";
+		};
+
+		config {
+			pins = "gpio86";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+		};
+	};
+
 	/* GPIO_104 : NC */
 	msm_gpio_104: msm_gpio_104 {
 		mux {
@@ -243,35 +377,59 @@
 			qcom,rgb_0 {
 				somc,pwm-channel = <2>;
 				linux,name = "led:rgb_red";
-				linux,default-trigger = "none";
+				/delete-property/ linux,default-trigger;
 				somc,color_variation_max_num = <4>;
 				somc,max_current = <
 					18 511 511
 					19 511 511
 					20 511 511
 					21 511 511>;
+				qcom,start-idx = <0>;
+				qcom,idx-len = <8>;
+				qcom,lut-flags = <31>;
+				qcom,pause-lo = <500>;
+				qcom,pause-hi = <500>;
+				qcom,ramp-step-ms = <100>;
+				qcom,duty-pcts = [00 0E 1C 2A 38 46 54 64];
+				qcom,use-blink;
 			};
 			qcom,rgb_1 {
 				somc,pwm-channel = <1>;
 				linux,name = "led:rgb_green";
-				linux,default-trigger = "none";
+				/delete-property/ linux,default-trigger;
 				somc,color_variation_max_num = <4>;
 				somc,max_current = <
 					18 511 511
 					19 511 511
 					20 511 511
 					21 511 511>;
+				qcom,start-idx = <0>;
+				qcom,idx-len = <8>;
+				qcom,lut-flags = <31>;
+				qcom,pause-lo = <500>;
+				qcom,pause-hi = <500>;
+				qcom,ramp-step-ms = <100>;
+				qcom,duty-pcts = [00 0E 1C 2A 38 46 54 64];
+				qcom,use-blink;
 			};
 			qcom,rgb_2 {
 				somc,pwm-channel = <0>;
 				linux,name = "led:rgb_blue";
-				linux,default-trigger = "none";
+				/delete-property/ linux,default-trigger;
 				somc,color_variation_max_num = <4>;
 				somc,max_current = <
 					18 511 511
 					19 511 511
 					20 511 511
 					21 511 511>;
+				qcom,start-idx = <16>;
+				qcom,idx-len = <8>;
+				qcom,lut-flags = <31>;
+				qcom,pause-lo = <500>;
+				qcom,pause-hi = <500>;
+				qcom,ramp-step-ms = <100>;
+				qcom,duty-pcts = [00 0E 1C 2A 38 46 54 64];
+				qcom,use-blink;
 			};
 		};
 		qcom,leds@d800 {
@@ -308,7 +466,28 @@
 };
 
 &usb3 {
-	/delete-property/ id_polling_use;
+	id_polling_up_interval = <2000>;
+	id_polling_up_period = <500>;
+	id_polling_pd_gpio = <&tlmm 24 0>;
+	id_lv_vadc_channel = <0x79>;
 	id_polling_keep_not_dischg;
 	no_device_det_enable;
+	qcom,usb_id_lv-vadc = <&pm8994_vadc>;
+	qcom,usbin-vadc = <&pmi8994_vadc>;
+	usb_switch_sel = <&pmi8994_gpios 9 0>;
+	usb_id_discharge = <&pmi8994_mpps 1 0>;
 };
+
+&pm8994_vadc {
+	chan@79 {
+		label = "usb_id_lv";
+		reg = <0x79>;
+		qcom,decimation = <0>;
+		qcom,pre-div-channel-scaling = <0>;
+		qcom,calibration-type = "absolute";
+		qcom,scale-function = <0>;
+		qcom,hw-settle-time = <5>;
+		qcom,fast-avg-setup = <0>;
+	};
+};
+

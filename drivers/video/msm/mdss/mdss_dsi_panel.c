@@ -762,7 +762,7 @@ static int mdss_dsi_post_panel_on(struct mdss_panel_data *pdata)
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+	pr_debug("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 	pinfo = &pdata->panel_info;
 	if (pinfo->dcs_cmd_by_left && ctrl->ndx != DSI_CTRL_LEFT)
@@ -800,7 +800,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+	pr_debug("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
@@ -835,7 +835,7 @@ static int mdss_dsi_panel_low_power_config(struct mdss_panel_data *pdata,
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ctrl=%p ndx=%d enable=%d\n", __func__, ctrl, ctrl->ndx,
+	pr_debug("%s: ctrl=%pK ndx=%d enable=%d\n", __func__, ctrl, ctrl->ndx,
 		enable);
 
 	/* Any panel specific low power commands/config */
@@ -1113,6 +1113,58 @@ void mdss_dsi_panel_dsc_pps_send(struct mdss_dsi_ctrl_pdata *ctrl,
 	pcmds.link_state = DSI_LP_MODE;
 
 	mdss_dsi_panel_cmds_send(ctrl, &pcmds, CMD_REQ_COMMIT);
+}
+
+static int mdss_dsi_parse_hdr_settings(struct device_node *np,
+		struct mdss_panel_info *pinfo)
+{
+	int rc = 0;
+	struct mdss_panel_hdr_properties *hdr_prop;
+
+	if (!np) {
+		pr_err("%s: device node pointer is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	if (!pinfo) {
+		pr_err("%s: panel info is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	hdr_prop = &pinfo->hdr_properties;
+	hdr_prop->hdr_enabled = of_property_read_bool(np,
+		"qcom,mdss-dsi-panel-hdr-enabled");
+
+	if (hdr_prop->hdr_enabled) {
+		rc = of_property_read_u32_array(np,
+				"qcom,mdss-dsi-panel-hdr-color-primaries",
+				hdr_prop->display_primaries,
+				DISPLAY_PRIMARIES_COUNT);
+		if (rc) {
+			pr_info("%s:%d, Unable to read color primaries,rc:%u",
+					__func__, __LINE__,
+					hdr_prop->hdr_enabled = false);
+		}
+
+		rc = of_property_read_u32(np,
+			"qcom,mdss-dsi-panel-peak-brightness",
+			&(hdr_prop->peak_brightness));
+		if (rc) {
+			pr_info("%s:%d, Unable to read hdr brightness, rc:%u",
+				__func__, __LINE__, rc);
+			hdr_prop->hdr_enabled = false;
+		}
+
+		rc = of_property_read_u32(np,
+			"qcom,mdss-dsi-panel-blackness-level",
+			&(hdr_prop->blackness_level));
+		if (rc) {
+			pr_info("%s:%d, Unable to read hdr brightness, rc:%u",
+				__func__, __LINE__, rc);
+			hdr_prop->hdr_enabled = false;
+		}
+	}
+	return 0;
 }
 
 static int mdss_dsi_parse_dsc_version(struct device_node *np,
@@ -2191,7 +2243,7 @@ static int mdss_dsi_panel_timing_from_dt(struct device_node *np,
 
 	if (np->name) {
 		pt->timing.name = kstrdup(np->name, GFP_KERNEL);
-		pr_info("%s: found new timing \"%s\" (%p)\n", __func__,
+		pr_info("%s: found new timing \"%s\" (%pK)\n", __func__,
 				np->name, &pt->timing);
 	}
 
@@ -2462,6 +2514,9 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	rc = mdss_panel_parse_display_timings(np, &ctrl_pdata->panel_data);
 	if (rc)
 		return rc;
+	rc = mdss_dsi_parse_hdr_settings(np, pinfo);
+	if (rc)
+		return rc;
 
 	pinfo->mipi.rx_eot_ignore = of_property_read_bool(np,
 		"qcom,mdss-dsi-rx-eot-ignore");
@@ -2527,7 +2582,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		bridge_chip_name = of_get_property(np,
 			"qcom,bridge-name", &len);
 		if (!bridge_chip_name || len <= 0) {
-			pr_err("%s:%d Unable to read qcom,bridge_name, data=%p,len=%d\n",
+			pr_err("%s:%d Unable to read qcom,bridge_name, data=%pK,len=%d\n",
 				__func__, __LINE__, bridge_chip_name, len);
 			rc = -EINVAL;
 			goto error;

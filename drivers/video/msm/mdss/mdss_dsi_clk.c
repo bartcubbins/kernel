@@ -99,15 +99,39 @@ static int dsi_core_clk_start(struct dsi_core_clks *c_clks)
 		}
 	}
 
+	if (c_clks->clks.tbu_clk) {
+		rc = clk_prepare_enable(c_clks->clks.tbu_clk);
+		if (rc) {
+			pr_err("%s: failed to enable mdp tbu clk.rc=%d\n",
+				__func__, rc);
+			goto disable_mmss_misc_clk;
+		}
+	}
+
+	if (c_clks->clks.tbu_rt_clk) {
+		rc = clk_prepare_enable(c_clks->clks.tbu_rt_clk);
+		if (rc) {
+			pr_err("%s: failed to enable mdp tbu rt clk.rc=%d\n",
+				__func__, rc);
+			goto disable_tbu_clk;
+		}
+	}
+
 	rc = mdss_update_reg_bus_vote(mngr->reg_bus_clt, VOTE_INDEX_LOW);
 	if (rc) {
 		pr_err("failed to vote for reg bus\n");
-		goto disable_mmss_misc_clk;
+		goto disable_tbu_rt_clk;
 	}
 
 	pr_debug("%s:CORE CLOCK IS ON\n", mngr->name);
 	return rc;
 
+disable_tbu_rt_clk:
+	if (c_clks->clks.tbu_rt_clk)
+		clk_disable_unprepare(c_clks->clks.tbu_rt_clk);
+disable_tbu_clk:
+	if (c_clks->clks.tbu_clk)
+		clk_disable_unprepare(c_clks->clks.tbu_clk);
 disable_mmss_misc_clk:
 	if (c_clks->clks.mmss_misc_ahb_clk)
 		clk_disable_unprepare(c_clks->clks.mmss_misc_ahb_clk);
@@ -130,6 +154,10 @@ static int dsi_core_clk_stop(struct dsi_core_clks *c_clks)
 	mngr = container_of(c_clks, struct mdss_dsi_clk_mngr, core_clks);
 
 	mdss_update_reg_bus_vote(mngr->reg_bus_clt, VOTE_INDEX_DISABLE);
+	if (c_clks->clks.tbu_clk)
+		clk_disable_unprepare(c_clks->clks.tbu_clk);
+	if (c_clks->clks.tbu_rt_clk)
+		clk_disable_unprepare(c_clks->clks.tbu_rt_clk);
 	if (c_clks->clks.mmss_misc_ahb_clk)
 		clk_disable_unprepare(c_clks->clks.mmss_misc_ahb_clk);
 	clk_disable_unprepare(c_clks->clks.axi_clk);
@@ -754,7 +782,7 @@ int mdss_dsi_clk_req_state(void *client, enum mdss_dsi_clk_type clk,
 
 	if (!client || !clk || clk > (MDSS_DSI_CORE_CLK | MDSS_DSI_LINK_CLK) ||
 	    state > MDSS_DSI_CLK_EARLY_GATE) {
-		pr_err("Invalid params, client = %p, clk = 0x%x, state = %d\n",
+		pr_err("Invalid params, client = %pK, clk = 0x%x, state = %d\n",
 		       client, clk, state);
 		return -EINVAL;
 	}
@@ -852,7 +880,7 @@ int mdss_dsi_clk_set_link_rate(void *client, enum mdss_dsi_link_clk_type clk,
 	struct mdss_dsi_clk_mngr *mngr;
 
 	if (!client || (clk > MDSS_DSI_LINK_CLK_MAX)) {
-		pr_err("Invalid params, client = %p, clk = 0x%x", client, clk);
+		pr_err("Invalid params, client = %pK, clk = 0x%x", client, clk);
 		return -EINVAL;
 	}
 
@@ -951,7 +979,7 @@ int mdss_dsi_clk_force_toggle(void *client, u32 clk)
 	struct mdss_dsi_clk_mngr *mngr;
 
 	if (!client || !clk || clk >= MDSS_DSI_CLKS_MAX) {
-		pr_err("Invalid params, client = %p, clk = 0x%x\n",
+		pr_err("Invalid params, client = %pK, clk = 0x%x\n",
 		       client, clk);
 		return -EINVAL;
 	}

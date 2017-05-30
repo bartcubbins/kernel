@@ -23,6 +23,9 @@
 #include <linux/irqreturn.h>
 #include <linux/kref.h>
 
+#include <linux/file.h>
+#include <linux/dma-direction.h>
+
 #include "mdss.h"
 #include "mdss_mdp_hwio.h"
 #include "mdss_fb.h"
@@ -105,6 +108,7 @@ enum mdss_mdp_block_power_state {
 enum mdss_mdp_mixer_type {
 	MDSS_MDP_MIXER_TYPE_UNUSED,
 	MDSS_MDP_MIXER_TYPE_INTF,
+	MDSS_MDP_MIXER_TYPE_INTF_NO_DSPP,
 	MDSS_MDP_MIXER_TYPE_WRITEBACK,
 };
 
@@ -112,6 +116,12 @@ enum mdss_mdp_mixer_mux {
 	MDSS_MDP_MIXER_MUX_DEFAULT,
 	MDSS_MDP_MIXER_MUX_LEFT,
 	MDSS_MDP_MIXER_MUX_RIGHT,
+};
+
+enum mdss_sd_transition {
+	SD_TRANSITION_NONE,
+	SD_TRANSITION_SECURE_TO_NON_SECURE,
+	SD_TRANSITION_NON_SECURE_TO_SECURE
 };
 
 static inline enum mdss_mdp_sspp_index get_pipe_num_from_ndx(u32 ndx)
@@ -189,9 +199,13 @@ enum mdss_mdp_csc_type {
 	MDSS_MDP_CSC_YUV2RGB_601L,
 	MDSS_MDP_CSC_YUV2RGB_601FR,
 	MDSS_MDP_CSC_YUV2RGB_709L,
+	MDSS_MDP_CSC_YUV2RGB_2020L,
+	MDSS_MDP_CSC_YUV2RGB_2020FR,
 	MDSS_MDP_CSC_RGB2YUV_601L,
 	MDSS_MDP_CSC_RGB2YUV_601FR,
 	MDSS_MDP_CSC_RGB2YUV_709L,
+	MDSS_MDP_CSC_RGB2YUV_2020L,
+	MDSS_MDP_CSC_RGB2YUV_2020FR,
 	MDSS_MDP_CSC_YUV2YUV,
 	MDSS_MDP_CSC_RGB2RGB,
 	MDSS_MDP_MAX_CSC
@@ -201,6 +215,7 @@ enum mdp_wfd_blk_type {
 	MDSS_MDP_WFD_SHARED = 0,
 	MDSS_MDP_WFD_INTERFACE,
 	MDSS_MDP_WFD_DEDICATED,
+	MDSS_MDP_WFD_INTF_NO_DSPP,
 };
 
 enum mdss_mdp_reg_bus_cfg {
@@ -823,6 +838,8 @@ struct mdss_overlay_private {
 	u32 ad_bl_events;
 
 	bool allow_kickoff;
+
+	u8 sd_transition_state;
 };
 
 struct mdss_mdp_set_ot_params {
@@ -1072,6 +1089,8 @@ static inline bool mdss_mdp_req_init_restore_cfg(struct mdss_data_type *mdata)
 	    IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
 				MDSS_MDP_HW_REV_108) ||
 	    IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
+				MDSS_MDP_HW_REV_111) ||
+	    IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
 				MDSS_MDP_HW_REV_112) ||
 	    IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
 				MDSS_MDP_HW_REV_114) ||
@@ -1096,7 +1115,11 @@ static inline int mdss_mdp_panic_signal_support_mode(
 		IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
 				MDSS_MDP_HW_REV_109) ||
 		IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
-				MDSS_MDP_HW_REV_110))
+				MDSS_MDP_HW_REV_110) ||
+		IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
+				MDSS_MDP_HW_REV_111) ||
+		IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
+				MDSS_MDP_HW_REV_112))
 		signal_mode = MDSS_MDP_PANIC_COMMON_REG_CFG;
 	else if (IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
 				MDSS_MDP_HW_REV_107) ||
@@ -1119,7 +1142,7 @@ static inline struct clk *mdss_mdp_get_clk(u32 clk_idx)
 }
 
 static inline void mdss_update_sd_client(struct mdss_data_type *mdata,
-							bool status)
+							unsigned int status)
 {
 	if (status)
 		atomic_inc(&mdata->sd_client_count);
@@ -1131,12 +1154,21 @@ static inline int mdss_mdp_get_wb_ctl_support(struct mdss_data_type *mdata,
 							bool rotator_session)
 {
 	/*
-	 * Initial control paths are used for primary and external
-	 * interfaces and remaining control paths are used for WB
-	 * interfaces.
+	 * Any control path can be routed to any of the hardware datapaths.
+	 * But there is a HW restriction for 3D Mux block. As the 3D Mux
+	 * settings in the CTL registers are double buffered, if an interface
+	 * uses it and disconnects, then the subsequent interface which gets
+	 * connected should use the same control path in order to clear the
+	 * 3D MUX settings.
+	 * To handle this restriction, we are allowing WB also, to loop through
+	 * all the avialable control paths, so that it can reuse the control
+	 * path left by the external interface, thereby clearing the 3D Mux
+	 * settings.
+	 * The initial control paths can be used by Primary, External and WB.
+	 * The rotator can use the remaining available control paths.
 	 */
 	return rotator_session ? (mdata->nctl - mdata->nmixers_wb) :
-				(mdata->nctl - mdata->nwb);
+		MDSS_MDP_CTL0;
 }
 
 static inline bool mdss_mdp_is_nrt_vbif_client(struct mdss_data_type *mdata,
@@ -1256,6 +1288,10 @@ static inline uint8_t pp_vig_csc_pipe_val(struct mdss_mdp_pipe *pipe)
 		return MDSS_MDP_CSC_YUV2RGB_601L;
 	case MDP_CSC_ITU_R_601_FR:
 		return MDSS_MDP_CSC_YUV2RGB_601FR;
+	case MDP_CSC_ITU_R_2020:
+		return MDSS_MDP_CSC_YUV2RGB_2020L;
+	case MDP_CSC_ITU_R_2020_FR:
+		return MDSS_MDP_CSC_YUV2RGB_2020FR;
 	case MDP_CSC_ITU_R_709:
 	default:
 		return  MDSS_MDP_CSC_YUV2RGB_709L;
@@ -1409,7 +1445,8 @@ unsigned long mdss_mdp_get_clk_rate(u32 clk_idx, bool locked);
 int mdss_mdp_vsync_clk_enable(int enable, bool locked);
 void mdss_mdp_clk_ctrl(int enable);
 struct mdss_data_type *mdss_mdp_get_mdata(void);
-int mdss_mdp_secure_display_ctrl(unsigned int enable);
+int mdss_mdp_secure_display_ctrl(struct mdss_data_type *mdata,
+	unsigned int enable);
 
 int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd);
 int mdss_mdp_dfps_update_params(struct msm_fb_data_type *mfd,
@@ -1524,6 +1561,8 @@ int mdss_mdp_mixer_handoff(struct mdss_mdp_ctl *ctl, u32 num,
 void mdss_mdp_ctl_perf_set_transaction_status(struct mdss_mdp_ctl *ctl,
 	enum mdss_mdp_perf_state_type component, bool new_status);
 void mdss_mdp_ctl_perf_release_bw(struct mdss_mdp_ctl *ctl);
+void mdss_mdp_get_interface_type(struct mdss_mdp_ctl *ctl, int *intf_type,
+		int *split_needed);
 int mdss_mdp_async_ctl_flush(struct msm_fb_data_type *mfd,
 		u32 flush_bits);
 int mdss_mdp_get_pipe_flush_bits(struct mdss_mdp_pipe *pipe);

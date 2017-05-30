@@ -2,6 +2,7 @@
  *  linux/drivers/mmc/sdio.c
  *
  *  Copyright 2006-2007 Pierre Ossman
+ *  Copyright 2016 Sony Mobile Communications Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1036,6 +1037,7 @@ static int mmc_sdio_pre_suspend(struct mmc_host *host)
  */
 static int mmc_sdio_suspend(struct mmc_host *host)
 {
+	MMC_TRACE(host, "%s: Enter\n", __func__);
 	if (mmc_card_keep_power(host) && mmc_card_wake_sdio_irq(host)) {
 		mmc_claim_host(host);
 		sdio_disable_wide(host->card);
@@ -1046,6 +1048,7 @@ static int mmc_sdio_suspend(struct mmc_host *host)
 		mmc_power_off(host);
 	else if (host->ios.clock)
 		mmc_gate_clock(host);
+	MMC_TRACE(host, "%s: Exit\n", __func__);
 
 	return 0;
 }
@@ -1057,6 +1060,7 @@ static int mmc_sdio_resume(struct mmc_host *host)
 	BUG_ON(!host);
 	BUG_ON(!host->card);
 
+	MMC_TRACE(host, "%s: Enter\n", __func__);
 	/* Basic card reinitialization. */
 	mmc_claim_host(host);
 
@@ -1108,12 +1112,30 @@ static int mmc_sdio_resume(struct mmc_host *host)
 
 	host->pm_flags &= ~MMC_PM_KEEP_POWER;
 	host->pm_flags &= ~MMC_PM_WAKE_SDIO_IRQ;
+	MMC_TRACE(host, "%s: Exit err: %d\n", __func__, err);
 	return err;
 }
+
+#ifdef CONFIG_MMC_SOMC_LOW_VOLTAGE
+static u32 mmc_select_low_voltage(struct mmc_host *host, u32 ocr)
+{
+	pr_info("%s \n",__func__);
+
+	if ((host->ocr_avail == MMC_VDD_165_195) && mmc_host_uhs(host) &&
+		((ocr & host->ocr_avail) == 0)) {
+		/* lowest voltage can be selected in mmc_power_cycle */
+		mmc_power_cycle(host, ocr);
+		host->card->ocr = 0;
+	}
+
+	return host->card->ocr;
+}
+#endif
 
 static int mmc_sdio_power_restore(struct mmc_host *host)
 {
 	int ret;
+	u32 ocr;
 
 	BUG_ON(!host);
 	BUG_ON(!host->card);
@@ -1141,10 +1163,13 @@ static int mmc_sdio_power_restore(struct mmc_host *host)
 	mmc_go_idle(host);
 	mmc_send_if_cond(host, host->ocr_avail);
 
-	ret = mmc_send_io_op_cond(host, 0, NULL);
+	ret = mmc_send_io_op_cond(host, 0, &ocr);
 	if (ret)
 		goto out;
 
+#ifdef CONFIG_MMC_SOMC_LOW_VOLTAGE
+	ocr = mmc_select_low_voltage(host, ocr);
+#endif
 	ret = mmc_sdio_init_card(host, host->card->ocr, host->card,
 				mmc_card_keep_power(host));
 	if (!ret && host->sdio_irqs)
@@ -1203,7 +1228,9 @@ int mmc_attach_sdio(struct mmc_host *host)
 	if (host->ocr_avail_sdio)
 		host->ocr_avail = host->ocr_avail_sdio;
 
-
+#ifdef CONFIG_MMC_SOMC_LOW_VOLTAGE
+	rocr = mmc_select_low_voltage(host, ocr);
+#else
 	rocr = mmc_select_voltage(host, ocr);
 
 	/*
@@ -1213,6 +1240,7 @@ int mmc_attach_sdio(struct mmc_host *host)
 		err = -EINVAL;
 		goto err;
 	}
+#endif // CONFIG_MMC_SOMC_LOW_VOLTAGE
 
 	/*
 	 * Detect and init the card.

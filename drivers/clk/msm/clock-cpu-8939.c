@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -41,12 +41,12 @@ DEFINE_VDD_REGS_INIT(vdd_cpu_cci, 1);
 
 enum {
 	A53SS_MUX_BC,
-	A53SS_MUX_LC,
 	A53SS_MUX_CCI,
+	A53SS_MUX_LC,
 	A53SS_MUX_NUM,
 };
 
-const char *mux_names[] = { "c1", "c0", "cci"};
+const char *mux_names[] = {"c1", "cci", "c0"};
 
 struct cpu_clk_8939 {
 	u32 cpu_reg_mask;
@@ -217,16 +217,10 @@ static struct clk_lookup cpu_clocks_8939[] = {
 	CLK_LIST(cci_clk),
 };
 
-static struct clk_lookup cpu_clocks_8939_single_cluster[] = {
-	CLK_LIST(a53ssmux_bc),
-	CLK_LIST(a53_bc_clk),
-};
-
-
 static struct mux_div_clk *a53ssmux[] = {&a53ssmux_bc,
-						&a53ssmux_lc, &a53ssmux_cci};
+						&a53ssmux_cci, &a53ssmux_lc};
 
-static struct cpu_clk_8939 *cpuclk[] = { &a53_bc_clk, &a53_lc_clk, &cci_clk};
+static struct cpu_clk_8939 *cpuclk[] = {&a53_bc_clk, &cci_clk, &a53_lc_clk};
 
 static struct clk *logical_cpu_to_clk(int cpu)
 {
@@ -536,57 +530,55 @@ static int add_opp(struct clk *c, struct device *cpudev, struct device *vregdev,
 	return 0;
 }
 
-static void print_opp_table(int a53_c0_cpu, int a53_c1_cpu, bool single_cluster)
+static void print_opp_table(int a53_c0_cpu, int a53_c1_cpu)
 {
 	struct dev_pm_opp *oppfmax, *oppfmin;
 	unsigned long apc0_fmax, apc1_fmax, apc0_fmin, apc1_fmin;
-	if (!single_cluster) {
-		apc0_fmax = a53_lc_clk.c.fmax[a53_lc_clk.c.num_fmax - 1];
-		apc0_fmin = a53_lc_clk.c.fmax[1];
-	}
+
+	apc0_fmax = a53_lc_clk.c.fmax[a53_lc_clk.c.num_fmax - 1];
+	apc0_fmin = a53_lc_clk.c.fmax[1];
+
 	apc1_fmax = a53_bc_clk.c.fmax[a53_bc_clk.c.num_fmax - 1];
 	apc1_fmin = a53_bc_clk.c.fmax[1];
 
 	rcu_read_lock();
-	if (!single_cluster) {
-		oppfmax = dev_pm_opp_find_freq_exact(get_cpu_device(a53_c0_cpu),
+
+	oppfmax = dev_pm_opp_find_freq_exact(get_cpu_device(a53_c0_cpu),
 						apc0_fmax, true);
-		oppfmin = dev_pm_opp_find_freq_exact(get_cpu_device(a53_c0_cpu),
+	oppfmin = dev_pm_opp_find_freq_exact(get_cpu_device(a53_c0_cpu),
 						apc0_fmin, true);
-		/*
-		* One time information during boot. Important to know that this
-		* looks sane since it can eventually make its way to the
-		* scheduler.
-		*/
-		pr_info("clock_cpu: a53_c0: OPP voltage for %lu: %ld\n",
-			apc0_fmin, dev_pm_opp_get_voltage(oppfmin));
-		pr_info("clock_cpu: a53_c0: OPP voltage for %lu: %ld\n",
-			apc0_fmax, dev_pm_opp_get_voltage(oppfmax));
-	}
 	oppfmax = dev_pm_opp_find_freq_exact(get_cpu_device(a53_c1_cpu),
 						apc1_fmax, true);
 	oppfmin = dev_pm_opp_find_freq_exact(get_cpu_device(a53_c1_cpu),
 						apc1_fmin, true);
+	/*
+	* One time information during boot. Important to know that this
+	* looks sane since it can eventually make its way to the
+	* scheduler.
+	*/
+	pr_info("clock_cpu: a53_c0: OPP voltage for %lu: %ld\n", apc0_fmin,
+						dev_pm_opp_get_voltage(oppfmin));
+	pr_info("clock_cpu: a53_c0: OPP voltage for %lu: %ld\n", apc0_fmax,
+						dev_pm_opp_get_voltage(oppfmax));
 	pr_info("clock_cpu: a53_c1: OPP voltage for %lu: %lu\n", apc1_fmin,
-		dev_pm_opp_get_voltage(oppfmin));
+						dev_pm_opp_get_voltage(oppfmin));
 	pr_info("clock_cpu: a53_c1: OPP voltage for %lu: %lu\n", apc1_fmax,
-		dev_pm_opp_get_voltage(oppfmax));
+						dev_pm_opp_get_voltage(oppfmax));
+
 	rcu_read_unlock();
 }
 
-static void populate_opp_table(struct platform_device *pdev,
-					bool single_cluster)
+static void populate_opp_table(struct platform_device *pdev)
 {
 	struct platform_device *apc0_dev, *apc1_dev;
-	struct device_node *apc0_node = NULL, *apc1_node;
+	struct device_node *apc0_node = NULL, *apc1_node = NULL;
 	unsigned long apc0_fmax, apc1_fmax;
 	int cpu, a53_c0_cpu = 0, a53_c1_cpu = 0;
 
-	if (!single_cluster)
-		apc0_node = of_parse_phandle(pdev->dev.of_node,
-						"vdd-c0-supply", 0);
+	apc0_node = of_parse_phandle(pdev->dev.of_node,	"vdd-c0-supply", 0);
 	apc1_node = of_parse_phandle(pdev->dev.of_node, "vdd-c1-supply", 0);
-	if (!apc0_node && !single_cluster) {
+
+	if (!apc0_node) {
 		pr_err("can't find the apc0 dt node.\n");
 		return;
 	}
@@ -594,11 +586,11 @@ static void populate_opp_table(struct platform_device *pdev,
 		pr_err("can't find the apc1 dt node.\n");
 		return;
 	}
-	if (!single_cluster)
-		apc0_dev = of_find_device_by_node(apc0_node);
 
+	apc0_dev = of_find_device_by_node(apc0_node);
 	apc1_dev = of_find_device_by_node(apc1_node);
-	if (!apc1_dev && !single_cluster) {
+
+	if (!apc1_dev) {
 		pr_err("can't find the apc0 device node.\n");
 		return;
 	}
@@ -607,9 +599,7 @@ static void populate_opp_table(struct platform_device *pdev,
 		return;
 	}
 
-	if (!single_cluster)
-		apc0_fmax = a53_lc_clk.c.fmax[a53_lc_clk.c.num_fmax - 1];
-
+	apc0_fmax = a53_lc_clk.c.fmax[a53_lc_clk.c.num_fmax - 1];
 	apc1_fmax = a53_bc_clk.c.fmax[a53_bc_clk.c.num_fmax - 1];
 
 	for_each_possible_cpu(cpu) {
@@ -619,7 +609,7 @@ static void populate_opp_table(struct platform_device *pdev,
 			WARN(add_opp(&a53_bc_clk.c, get_cpu_device(cpu),
 				     &apc1_dev->dev, apc1_fmax),
 				     "Failed to add OPP levels for A53 big cluster\n");
-		} else if (cpu/4 == 1 && !single_cluster) {
+		} else if (cpu/4 == 1) {
 			a53_c0_cpu = cpu;
 			WARN(add_opp(&a53_lc_clk.c, get_cpu_device(cpu),
 				     &apc0_dev->dev, apc0_fmax),
@@ -631,7 +621,7 @@ static void populate_opp_table(struct platform_device *pdev,
 	pr_info("clock-cpu-8939: OPP tables populated (cpu %d and %d)",
 		a53_c0_cpu, a53_c1_cpu);
 
-	print_opp_table(a53_c0_cpu, a53_c1_cpu, single_cluster);
+	print_opp_table(a53_c0_cpu, a53_c1_cpu);
 
 }
 
@@ -672,49 +662,87 @@ static int clock_8939_pm_event(struct notifier_block *this,
 		break;
 	}
 	return NOTIFY_DONE;
-}
-
-static int clock_8939_pm_event_single_cluster(struct notifier_block *this,
-						unsigned long event, void *ptr)
-{
-	switch (event) {
-	case PM_POST_HIBERNATION:
-	case PM_POST_SUSPEND:
-		clk_unprepare(&a53_bc_clk.c);
-		break;
-	case PM_HIBERNATION_PREPARE:
-	case PM_SUSPEND_PREPARE:
-		clk_prepare(&a53_bc_clk.c);
-		break;
-	default:
-		break;
-	}
-	return NOTIFY_DONE;
-}
+};
 
 static struct notifier_block clock_8939_pm_notifier = {
 	.notifier_call = clock_8939_pm_event,
 };
 
-static struct notifier_block clock_8939_pm_notifier_single_cluster = {
-	.notifier_call = clock_8939_pm_event_single_cluster,
+/**
+ * clock_panic_callback() - panic notification callback function.
+ *		This function is invoked when a kernel panic occurs.
+ * @nfb:	Notifier block pointer
+ * @event:	Value passed unmodified to notifier function
+ * @data:	Pointer passed unmodified to notifier function
+ *
+ * Return: NOTIFY_OK
+ */
+static int clock_panic_callback(struct notifier_block *nfb,
+					unsigned long event, void *data)
+{
+	unsigned long rate;
+
+	rate  = (a53_bc_clk.c.count) ? a53_bc_clk.c.rate : 0;
+	pr_err("%s frequency: %10lu Hz\n", a53_bc_clk.c.dbg_name, rate);
+
+	rate  = (a53_lc_clk.c.count) ? a53_lc_clk.c.rate : 0;
+	pr_err("%s frequency: %10lu Hz\n", a53_lc_clk.c.dbg_name, rate);
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block clock_panic_notifier = {
+	.notifier_call = clock_panic_callback,
+	.priority = 1,
+};
+
+/**
+ * clock_panic_callback() - panic notification callback function.
+ *		This function is invoked when a kernel panic occurs.
+ * @nfb:	Notifier block pointer
+ * @event:	Value passed unmodified to notifier function
+ * @data:	Pointer passed unmodified to notifier function
+ *
+ * Return: NOTIFY_OK
+ */
+static int clock_panic_callback(struct notifier_block *nfb,
+					unsigned long event, void *data)
+{
+	bool single_cluster = 0;
+	unsigned long rate;
+	struct device_node *ofnode = of_find_compatible_node(NULL, NULL,
+							"qcom,cpu-clock-8939");
+	if (!ofnode)
+		ofnode = of_find_compatible_node(NULL, NULL,
+						"qcom,cpu-clock-8917");
+	if (ofnode)
+		single_cluster = of_property_read_bool(ofnode,
+							"qcom,num-cluster");
+
+	rate  = (a53_bc_clk.c.count) ? a53_bc_clk.c.rate : 0;
+	pr_err("%s frequency: %10lu Hz\n", a53_bc_clk.c.dbg_name, rate);
+
+	if (!single_cluster) {
+		rate  = (a53_lc_clk.c.count) ? a53_lc_clk.c.rate : 0;
+		pr_err("%s frequency: %10lu Hz\n", a53_lc_clk.c.dbg_name, rate);
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block clock_panic_notifier = {
+	.notifier_call = clock_panic_callback,
+	.priority = 1,
 };
 
 static int clock_a53_probe(struct platform_device *pdev)
 {
 	int speed_bin, version, rc, cpu, mux_id, rate;
 	char prop_name[] = "qcom,speedX-bin-vX-XXX";
-	int mux_num;
-	bool single_cluster;
-
-	single_cluster = of_property_read_bool(pdev->dev.of_node,
-						"qcom,num-cluster");
 
 	get_speed_bin(pdev, &speed_bin, &version);
 
-	mux_num = single_cluster ? A53SS_MUX_LC:A53SS_MUX_NUM;
-
-	for (mux_id = 0; mux_id < mux_num; mux_id++) {
+	for (mux_id = 0; mux_id < A53SS_MUX_NUM; mux_id++) {
 		rc = cpu_parse_devicetree(pdev, mux_id);
 		if (rc)
 			return rc;
@@ -742,12 +770,8 @@ static int clock_a53_probe(struct platform_device *pdev)
 			dev_info(&pdev->dev, "Safe voltage plan loaded.\n");
 		}
 	}
-	if (single_cluster)
-		rc = of_msm_clock_register(pdev->dev.of_node,
-				cpu_clocks_8939_single_cluster,
-				ARRAY_SIZE(cpu_clocks_8939_single_cluster));
-	else
-		rc = of_msm_clock_register(pdev->dev.of_node,
+
+	rc = of_msm_clock_register(pdev->dev.of_node,
 				cpu_clocks_8939, ARRAY_SIZE(cpu_clocks_8939));
 
 	if (rc) {
@@ -755,16 +779,13 @@ static int clock_a53_probe(struct platform_device *pdev)
 		return rc;
 	}
 
-	if (!single_cluster) {
-		rate = clk_get_rate(&cci_clk.c);
-		clk_set_rate(&cci_clk.c, rate);
-	}
+	rate = clk_get_rate(&cci_clk.c);
+	clk_set_rate(&cci_clk.c, rate);
 
-	for (mux_id = 0; mux_id < mux_num; mux_id++) {
+	for (mux_id = 0; mux_id < A53SS_MUX_CCI; mux_id++) {
 		/* Force a PLL reconfiguration */
 		config_pll(mux_id);
 	}
-
 	/*
 	 * We don't want the CPU clocks to be turned off at late init
 	 * if CPUFREQ or HOTPLUG configs are disabled. So, bump up the
@@ -776,8 +797,7 @@ static int clock_a53_probe(struct platform_device *pdev)
 	for_each_online_cpu(cpu) {
 		WARN(clk_prepare_enable(&cpuclk[cpu/4]->c),
 				"Unable to turn on CPU clock");
-		if (!single_cluster)
-			clk_prepare_enable(&cci_clk.c);
+		clk_prepare_enable(&cci_clk.c);
 	}
 	put_online_cpus();
 
@@ -791,19 +811,21 @@ static int clock_a53_probe(struct platform_device *pdev)
 	a53_lc_clk.hw_low_power_ctrl = true;
 	a53_bc_clk.hw_low_power_ctrl = true;
 
-	if (single_cluster)
-		register_pm_notifier(&clock_8939_pm_notifier_single_cluster);
-	else
-		register_pm_notifier(&clock_8939_pm_notifier);
+	register_pm_notifier(&clock_8939_pm_notifier);
 
-	populate_opp_table(pdev, single_cluster);
+	populate_opp_table(pdev);
+
+	atomic_notifier_chain_register(&panic_notifier_list,
+						&clock_panic_notifier);
+
+	atomic_notifier_chain_register(&panic_notifier_list,
+						&clock_panic_notifier);
 
 	return 0;
 }
 
 static struct of_device_id clock_a53_match_table[] = {
 	{.compatible = "qcom,cpu-clock-8939"},
-	{.compatible = "qcom,cpu-clock-8917"},
 	{}
 };
 
@@ -824,39 +846,26 @@ arch_initcall(clock_a53_init);
 
 static int __init clock_cpu_lpm_get_latency(void)
 {
-	bool single_cluster;
 	int rc = 0;
 	struct device_node *ofnode = of_find_compatible_node(NULL, NULL,
 					"qcom,cpu-clock-8939");
 
 	if (!ofnode)
-		ofnode = of_find_compatible_node(NULL, NULL,
-					"qcom,cpu-clock-gold");
-
-	if (!ofnode)
 		return 0;
-
-	single_cluster = of_property_read_bool(ofnode,
-					"qcom,num-cluster");
 
 	rc = lpm_get_latency(&a53_bc_clk.latency_lvl,
 			&a53_bc_clk.cpu_latency_no_l2_pc_us);
 	if (rc < 0)
 		pr_err("Failed to get the L2 PC value for perf\n");
 
-	if (!single_cluster) {
-		rc = lpm_get_latency(&a53_lc_clk.latency_lvl,
-				&a53_lc_clk.cpu_latency_no_l2_pc_us);
-		if (rc < 0)
-			pr_err("Failed to get the L2 PC value for pwr\n");
+	rc = lpm_get_latency(&a53_lc_clk.latency_lvl,
+			&a53_lc_clk.cpu_latency_no_l2_pc_us);
+	if (rc < 0)
+		pr_err("Failed to get the L2 PC value for pwr\n");
 
-		pr_debug("Latency for pwr/perf cluster %d : %d\n",
-			a53_lc_clk.cpu_latency_no_l2_pc_us,
-			a53_bc_clk.cpu_latency_no_l2_pc_us);
-	} else {
-		pr_debug("Latency for perf cluster %d\n",
-			a53_bc_clk.cpu_latency_no_l2_pc_us);
-	}
+	pr_debug("Latency for pwr/perf cluster %d : %d\n",
+		a53_lc_clk.cpu_latency_no_l2_pc_us,
+		a53_bc_clk.cpu_latency_no_l2_pc_us);
 
 	return rc;
 }

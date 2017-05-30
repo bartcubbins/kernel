@@ -1022,7 +1022,8 @@ static void glink_edge_ctx_release(struct rwref_lock *ch_st_lock)
  *                              it is not found.
  * @xprt_ctx:	Transport to search for a matching edge.
  *
- * Return: The edge ctx corresponding to edge of @xprt_ctx.
+ * Return: The edge ctx corresponding to edge of @xprt_ctx or
+ *	NULL if memory allocation fails.
  */
 static struct glink_core_edge_ctx *edge_name_to_ctx_create(
 				struct glink_core_xprt_ctx *xprt_ctx)
@@ -1038,6 +1039,10 @@ static struct glink_core_edge_ctx *edge_name_to_ctx_create(
 		}
 	}
 	edge_ctx = kzalloc(sizeof(struct glink_core_edge_ctx), GFP_KERNEL);
+	if (!edge_ctx) {
+		mutex_unlock(&edge_list_lock_lhd0);
+		return NULL;
+	}
 	strlcpy(edge_ctx->name, xprt_ctx->edge, GLINK_NAME_SIZE);
 	rwref_lock_init(&edge_ctx->edge_ref_lock_lhd1, glink_edge_ctx_release);
 	mutex_init(&edge_ctx->edge_migration_lock_lhd2);
@@ -3805,6 +3810,10 @@ int glink_core_register_transport(struct glink_transport_if *if_ptr,
 	xprt_ptr->local_version_idx = cfg->versions_entries - 1;
 	xprt_ptr->remote_version_idx = cfg->versions_entries - 1;
 	xprt_ptr->edge_ctx = edge_name_to_ctx_create(xprt_ptr);
+	if (!xprt_ptr->edge_ctx) {
+		kfree(xprt_ptr);
+		return -ENOMEM;
+	}
 	xprt_ptr->l_features =
 			cfg->versions[cfg->versions_entries - 1].features;
 	if (!if_ptr->poll)
@@ -3868,11 +3877,12 @@ int glink_core_register_transport(struct glink_transport_if *if_ptr,
 	glink_debugfs_add_xprt(xprt_ptr);
 	snprintf(log_name, sizeof(log_name), "%s_%s",
 			xprt_ptr->edge, xprt_ptr->name);
+#ifdef CONFIG_IPC_LOGGIN
 	xprt_ptr->log_ctx = ipc_log_context_create(NUM_LOG_PAGES, log_name, 0);
 	if (!xprt_ptr->log_ctx)
 		GLINK_ERR("%s: unable to create log context for [%s:%s]\n",
 				__func__, xprt_ptr->edge, xprt_ptr->name);
-
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(glink_core_register_transport);
@@ -5228,7 +5238,7 @@ static int glink_scheduler_tx(struct channel_ctx *ctx,
 	size_t txd_len = 0;
 	size_t tx_len = 0;
 	uint32_t num_pkts = 0;
-	int ret;
+	int ret = 0;
 
 	spin_lock_irqsave(&ctx->tx_lists_lock_lhc3, flags);
 	while (txd_len < xprt_ctx->mtu &&
@@ -5966,9 +5976,11 @@ EXPORT_SYMBOL(glink_get_xprt_log_ctx);
 
 static int glink_init(void)
 {
+#ifdef CONFIG_IPC_LOGGING
 	log_ctx = ipc_log_context_create(NUM_LOG_PAGES, "glink", 0);
 	if (!log_ctx)
 		GLINK_ERR("%s: unable to create log context\n", __func__);
+#endif
 	glink_debugfs_init();
 
 	return 0;

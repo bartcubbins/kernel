@@ -24,10 +24,10 @@
 #include "msm-pmi8996.dtsi"
 #include "msm8996-mtp.dtsi"
 #include "msm8996-tone-common.dtsi"
-#include "msm8996-tone-camera.dtsi"
+#include "msm8996-tone-kagura-camera.dtsi"
 #include "msm8996-tone-kagura-common.dtsi"
-#include "msm8996-tone-kagura-generic.dtsi"
-#include "dsi-panel-kagura.dtsi"
+#include "msm8996-tone-kagura_generic.dtsi"
+#include "dsi-panel-somc-kagura.dtsi"
 
 / {
 	model = "SoMC Kagura-ROW";

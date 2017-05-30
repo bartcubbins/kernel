@@ -37,20 +37,7 @@
 	};
 };
 
-&cci {
-	/delete-node/ qcom,actuator@0;
-	/delete-node/ qcom,actuator@1;
-	/delete-node/ qcom,ois@0;
-	/delete-node/ qcom,eeprom@0;
-	/delete-node/ qcom,eeprom@1;
-	/delete-node/ qcom,camera@0;
-	/delete-node/ qcom,camera@1;
-	/delete-node/ qcom,camera@2;
-};
-
 &soc {
-	/delete-node/ qcom,camera-flash;
-
 	pinctrl@01010000 {
 		disabled-pins = <0 1 2 3>;
 	};
@@ -115,13 +102,13 @@
 	};
 
 	bluesleep {
-		compatible = "bcm,bluesleep";
+		compatible = "qcom,bluesleep";
 		bt_host_wake = <&tlmm 82 0x00>; /* BT_HOST_WAKE */
 		bt_ext_wake = <&tlmm 81 0x00>; /* BT_DEV_WAKE */
 		interrupt-parent = <&tlmm>;
 		interrupts = <82 0>;
 		interrupt-names = "host_wake";
-		pinctrl-names = "wake_irq_active", "wake_irq_suspend";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&msm_gpio_82_active &msm_gpio_81>;
 		pinctrl-1 = <&msm_gpio_82_suspend &msm_gpio_81>;
 	};
@@ -159,33 +146,8 @@
 			<&clock_gcc clk_gcc_blsp1_qup3_i2c_apps_clk>;
 		pinctrl-names = "i2c_active", "i2c_sleep";
 		pinctrl-0 = <&msm_gpio_47 &msm_gpio_48>;
-		pinctrl-1 = <&msm_gpio_47_suspend &msm_gpio_48_suspend>;
-		status = "okay";
-		tcs3490@72 {
-			compatible = "ams,tcs3490";
-			reg = <0x72>;
-			interrupt-parent = <&tlmm>;
-			interrupts = <86 0x0>;
-			rgbcir_vdd-supply = <&pm8994_lvs1>;
-			ams,rgbcir-supply_name = "rgbcir_vdd";
-			pinctrl-names = "rgbcir_irq_active", "rgbcir_irq_suspend";
-			pinctrl-0 = <&msm_gpio_86>;
-			pinctrl-1 = <&msm_gpio_86_suspend>;
-		};
-		tof_sensor@52 {
-			compatible = "tof_sensor";
-			reg = <0x52>;
-			interrupt-parent = <&tlmm>;
-			interrupts = <85 0x0>;
-			tof_avdd-supply = <&pm8994_lvs1>;
-			tof-supply_name = "tof_avdd";
-			pinctrl-names = "tof_irq_active", "tof_irq_suspend";
-			pinctrl-0 = <&msm_gpio_85>;
-			pinctrl-1 = <&msm_gpio_85_suspend>;
-			sony,tof-sensor-name = "VL53L0";
-			sony,tof-need-cam-on = <1>;
-			sony,tof-sensor-facing = <0>;
-		};
+		pinctrl-1 = <&msm_gpio_47 &msm_gpio_48>;
+		status = "disabled";
 	};
 
 	/* I2C : BLSP7 */
@@ -271,7 +233,7 @@
 			interrupt-parent = <&tlmm>;
 			interrupts = <125 0x2>;
 			synaptics,irq_gpio = <&tlmm 125 0x00>;
-			post_probe_start = <0>;
+			post_probe_start = <1>;
 			synaptics,firmware_name = "touch_module_id_0x%02x.img";
 			flash_on_post_probe = <1>;
 			flip_config = <0>;
@@ -279,7 +241,7 @@
 			watchdog_delay_ms = <3000>;
 			charger_supported = <0>;
 			pen_supported = <0>;
-			glove_supported = <1>;
+			glove_supported = <0>;
 			cover_supported = <1>;
 			touch_pressure_enabled = <1>;
 			touch_size_enabled = <0>;
@@ -299,12 +261,12 @@
 					};
 					event_01 {
 						type = <1>; /* KEY */
-						code = <531>; /* TOUCHPAD_ON */
+						code = <143>; /* WAKEUP */
 						down = <1>;
 					};
 					event_02 {
 						type = <1>; /* KEY */
-						code = <531>; /* TOUCHPAD_ON */
+						code = <143>; /* WAKEUP */
 						down = <0>;
 					};
 					event_03 {
@@ -329,8 +291,8 @@
 			};
 			S332U {
 				flash_default_timeout_ms = <20000>;
-				calibrate_on_fwflash = <1>;
-				calibration_supported = <1>;
+				calibrate_on_fwflash = <0>;
+				calibration_supported = <0>;
 				hwreset_delay_for_powerup_ms = <220>;
 				interrupt_default_wait_ms = <1000>;
 			};
@@ -370,14 +332,14 @@
 				&msm_gpio_30 &msm_gpio_31 &msm_gpio_32 &msm_gpio_33
 				&msm_gpio_34 &msm_gpio_38 &msm_gpio_39 &msm_gpio_40
 				&msm_gpio_41 &msm_gpio_42 &msm_gpio_43 &msm_gpio_44_suspend
-				&msm_gpio_45 &msm_gpio_46 &msm_gpio_47_suspend &msm_gpio_48_suspend
+				&msm_gpio_45 &msm_gpio_46 &msm_gpio_47 &msm_gpio_48
 				&msm_gpio_49 &msm_gpio_50 &msm_gpio_51 &msm_gpio_52
 				&msm_gpio_55 &msm_gpio_56 &msm_gpio_57 &msm_gpio_58
 				&msm_gpio_59 &msm_gpio_60 &msm_gpio_61 &msm_gpio_62
 				&msm_gpio_63 &msm_gpio_69 &msm_gpio_73 &msm_gpio_74
 				&msm_gpio_75 &msm_gpio_76 &msm_gpio_77 &msm_gpio_78
 				&msm_gpio_79 &msm_gpio_81 &msm_gpio_82_suspend &msm_gpio_83
-				&msm_gpio_84 &msm_gpio_85_suspend &msm_gpio_86_suspend &msm_gpio_87
+				&msm_gpio_84 &msm_gpio_85 &msm_gpio_86 &msm_gpio_87
 				&msm_gpio_88 &msm_gpio_89 &msm_gpio_90 &msm_gpio_91
 				&msm_gpio_92 &msm_gpio_93 &msm_gpio_94 &msm_gpio_95
 				&msm_gpio_96 &msm_gpio_108 &msm_gpio_112 &msm_gpio_116
@@ -400,13 +362,10 @@
 	};
 
 	sound-9335 {
-		/delete-property/ qcom,hdmi-audio-rx;
-		/delete-property/ asoc-codec;
-		/delete-property/ asoc-codec-names;
+		qcom,msm-mbhc-hphl-swh = <1>;
 		/delete-property/ qcom,hph-en1-gpio;
 		/delete-property/ qcom,hph-en0-gpio;
 		/delete-property/ qcom,us-euro-gpios;
-		qcom,msm-mbhc-hphl-swh = <1>;
 		qcom,ear-en-gpios = <&pm8994_gpios 13 0>;
 		qcom,audio-routing =
 			"AIF4 VI", "MCLK",
@@ -427,6 +386,17 @@
 			"MIC BIAS4", "Digital Mic3",
 			"SpkrLeft IN", "SPK1 OUT",
 			"SpkrRight IN", "SPK2 OUT";
+		/delete-property/ qcom,hdmi-audio-rx;
+		asoc-codec = <&stub_codec>;
+		asoc-codec-names = "msm-stub-codec.1";
+	};
+
+	qcom,msm-dai-mi2s {
+		dai_mi2s: qcom,msm-dai-q6-mi2s-tert {
+			/delete-property/ pinctrl-names;
+			/delete-property/ pinctrl-0;
+			/delete-property/ pinctrl-1;
+			};
 	};
 
 	slim_msm: slim@91c0000 {
@@ -539,8 +509,8 @@
 		qcom,panel-supply-entry@1 {
 			reg = <1>;
 			qcom,supply-name = "lab";
-			qcom,supply-min-voltage = <4600000>;
-			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-min-voltage = <5500000>;
+			qcom,supply-max-voltage = <5700000>;
 			qcom,supply-enable-load = <100000>;
 			qcom,supply-disable-load = <100>;
 		};
@@ -548,8 +518,8 @@
 		qcom,panel-supply-entry@2 {
 			reg = <2>;
 			qcom,supply-name = "ibb";
-			qcom,supply-min-voltage = <4600000>;
-			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-min-voltage = <5500000>;
+			qcom,supply-max-voltage = <5700000>;
 			qcom,supply-enable-load = <100000>;
 			qcom,supply-disable-load = <100>;
 		};
@@ -580,8 +550,8 @@
 		qcom,panel-supply-entry@1 {
 			reg = <1>;
 			qcom,supply-name = "lab";
-			qcom,supply-min-voltage = <4600000>;
-			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-min-voltage = <5500000>;
+			qcom,supply-max-voltage = <5700000>;
 			qcom,supply-enable-load = <100000>;
 			qcom,supply-disable-load = <100>;
 		};
@@ -589,8 +559,8 @@
 		qcom,panel-supply-entry@2 {
 			reg = <2>;
 			qcom,supply-name = "ibb";
-			qcom,supply-min-voltage = <4600000>;
-			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-min-voltage = <5500000>;
+			qcom,supply-max-voltage = <5700000>;
 			qcom,supply-enable-load = <100000>;
 			qcom,supply-disable-load = <100>;
 		};
@@ -599,8 +569,21 @@
 	};
 
 	ramoops {
-		compatible = "pstore-ramoops";
+		compatible = "ramoops";
+		status = "ok";
+
+		android,ramoops-buffer-start = <0xa7f00000>;
+		android,ramoops-buffer-size = <0x100000>;
+		android,ramoops-console-size = <0x40000>;
+		android,ramoops-record-size = <0x20000>;
+		android,ramoops-ftrace-size = <0x20000>;
+		android,ramoops-pmsg-size = <0x20000>;
+		android,ramoops-dump-oops = <0x1>;
 		memory-region = <&pstore_reserve_mem>;
+		android,ramoops-hole {
+			compatible = "qcom,msm-contig-mem";
+			qcom,memblock-reserve = <0xa7f00000 0x00100000>;
+		};
 	};
 
 	qusb_phy0: qusb@7411000 {
@@ -635,54 +618,17 @@
 			qcom,alias-name = "bl_therm";
 		};
 
-		sensor_information100: qcom,sensor-information@100 {
+		sensor_information100: qcom,sensor-information-100 {
 			qcom,sensor-type = "adc";
 			qcom,sensor-name = "bms";
 			qcom,alias-name = "batt_therm";
 			qcom,scaling-factor = <1000>;
 		};
 
-		sensor_information101: qcom,sensor-information@101 {
+		sensor_information101: qcom,sensor-information-101 {
 			qcom,sensor-type = "adc";
 			qcom,sensor-name = "flash_therm";
 			qcom,scaling-factor = <10>;
-		};
-	};
-
-	qcom,cci@a0c000 {
-		gpios = <&tlmm 17 0>,
-			<&tlmm 18 0>,
-			<&tlmm 19 0>,
-			<&tlmm 20 0>;
-
-		qcom,i2c_fast_mode {
-			qcom,hw-thigh = <43>;
-			qcom,hw-tlow = <64>;
-			qcom,hw-tsu-sto = <41>;
-			qcom,hw-tsu-sta = <41>;
-			qcom,hw-thd-dat = <25>;
-			qcom,hw-thd-sta = <35>;
-			qcom,hw-tbuf = <64>;
-			qcom,hw-scl-stretch-en = <0>;
-			qcom,hw-trdhld = <6>;
-			qcom,hw-tsp = <3>;
-			qcom,cci-clk-src = <37500000>;
-			status = "ok";
-		};
-
-		qcom,i2c_fast_plus_mode {
-			qcom,hw-thigh = <16>;
-			qcom,hw-tlow = <22>;
-			qcom,hw-tsu-sto = <17>;
-			qcom,hw-tsu-sta = <18>;
-			qcom,hw-thd-dat = <16>;
-			qcom,hw-thd-sta = <15>;
-			qcom,hw-tbuf = <19>;
-			qcom,hw-scl-stretch-en = <1>;
-			qcom,hw-trdhld = <3>;
-			qcom,hw-tsp = <3>;
-			qcom,cci-clk-src = <37500000>;
-			status = "ok";
 		};
 	};
 
@@ -692,68 +638,6 @@
                         qcom,vph-low-threshold-uv = <3200000>;
 		};
 	};
-};
-
-&mdss_hdmi_tx {
-	pinctrl-names = "";
-	/delete-property/ pinctrl-names;
-	/delete-property/ pinctrl-0;
-	/delete-property/ pinctrl-1;
-	/delete-property/ pinctrl-2;
-	/delete-property/ pinctrl-3;
-	/delete-property/ pinctrl-4;
-};
-
-&dai_mi2s {
-	pinctrl-names = "";
-	/delete-property/ pinctrl-names;
-	/delete-property/ pinctrl-0;
-	/delete-property/ pinctrl-1;
-};
-
-/{
-	tone_batterydata: qcom,battery-data {
-		qcom,batt-id-range-pct = <17>;
-		/delete-node/ qcom,itech-3000mah;
-	};
-};
-
-&pmi8994_fg {
-	qcom,battery-data = <&tone_batterydata>;
-	qcom,hot-bat-decidegc = <550>;
-	qcom,warm-bat-decidegc = <450>;
-	qcom,cool-bat-decidegc = <100>;
-	qcom,cold-bat-decidegc = <50>;
-	qcom,cl-max-increment-deciperc = <0>;
-	qcom,cl-max-decrement-deciperc = <20>;
-	qcom,cl-max-start-capacity = <40>;
-	qcom,hold-soc-while-full;
-	qcom,thermal-coefficients = [EC 85 75 4A FC 35];
-	qcom,vbat-estimate-diff-mv = <200>;
-	qcom,cl-vbat-est-thr-uv = <300000>;
-	qcom,fg-cc-cv-threshold-mv = <4340>;
-	/delete-property/ qcom,capacity-learning-feedback;
-	somc,vfloat-arrangement;
-	somc,vfloat-arrangement-threshold = <90>;
-	somc,soc-magnification = <106>;
-	somc,resume-soc-raw-full-normal = <0xF3>;
-	somc,resume-soc-raw-full-aging = <0xE3>;
-	somc,resume-soc-raw-not-full-normal = <0xFD>;
-	somc,resume-soc-raw-not-full-aging = <0xEF>;
-};
-
-&pmi8994_charger {
-	/delete-property/ qcom,parallel-usb-min-current-ma;
-	/delete-property/ qcom,parallel-usb-9v-min-current-ma;
-	/delete-property/ qcom,charging-disabled;
-	qcom,charge-unknown-battery;
-	qcom,usb_dp-vadc = <&pmi8994_vadc>;
-	qcom,usb_dm-vadc = <&pmi8994_vadc>;
-	qcom,usbin-vadc = <&pmi8994_vadc>;
-	qcom,float-voltage-mv = <4350>;
-	qcom,precharging-timeout-mins = <24>;
-	qcom,charging-timeout-mins = <768>;
-	qcom,bmd-pin-src = "bpd_none";
 };
 
 &pm8994_gpios {
@@ -1074,7 +958,7 @@
 	/* MPP_1: USB_ID_DISCHG */
 	mpp@a000 {
 		qcom,mode = <0>;		/* DIN */
-		qcom,vin-sel = <2>;		/* VDD_MSM_IO(1.8V) */
+		qcom,vin-sel = <0>;		/* VPH */
 		qcom,master-en = <1>;		/* Enable */
 		status = "okay";
 	};
@@ -1095,6 +979,48 @@
 		qcom,master-en = <0>;		/* Disable */
 		status = "okay";
 	};
+};
+
+/{
+	tone_batterydata: qcom,battery-data {
+		qcom,batt-id-range-pct = <17>;
+		/delete-node/ qcom,itech-3000mah;
+	};
+};
+
+&pmi8994_fg {
+	qcom,battery-data = <&tone_batterydata>;
+	qcom,hot-bat-decidegc = <550>;
+	qcom,warm-bat-decidegc = <450>;
+	qcom,cool-bat-decidegc = <100>;
+	qcom,cold-bat-decidegc = <50>;
+	qcom,cl-max-increment-deciperc = <0>;
+	qcom,cl-max-decrement-deciperc = <20>;
+	qcom,cl-max-start-capacity = <40>;
+	qcom,hold-soc-while-full;
+	qcom,thermal-coefficients = [EC 85 75 4A FC 35];
+	qcom,vbat-estimate-diff-mv = <200>;
+	qcom,cl-vbat-est-thr-uv = <300000>;
+	qcom,fg-cc-cv-threshold-mv = <4290>;
+	/delete-property/ qcom,capacity-learning-feedback;
+	somc,resume-soc-raw-full-normal = <0xF3>;
+	somc,resume-soc-raw-full-aging = <0xE3>;
+	somc,resume-soc-raw-not-full-normal = <0xFD>;
+	somc,resume-soc-raw-not-full-aging = <0xEF>;
+};
+
+&pmi8994_charger {
+	/delete-property/ qcom,parallel-usb-min-current-ma;
+	/delete-property/ qcom,parallel-usb-9v-min-current-ma;
+	/delete-property/ qcom,charging-disabled;
+	qcom,charge-unknown-battery;
+	qcom,usb_dp-vadc = <&pmi8994_vadc>;
+	qcom,usb_dm-vadc = <&pmi8994_vadc>;
+	qcom,float-voltage-mv = <4300>;
+	qcom,usbin-vadc = <&pmi8994_vadc>;
+	qcom,precharging-timeout-mins = <24>;
+	qcom,charging-timeout-mins = <768>;
+	qcom,bmd-pin-src = "bpd_none";
 };
 
 /* Regulator config */
@@ -1217,7 +1143,7 @@
 	qcom,init-pin-ctrl-enable = <0>;
 	qcom,init-pin-ctrl-mode = <0>;
 	regulator-min-microvolt = <2200000>;
-	regulator-max-microvolt = <2200000>;
+	regulator-max-microvolt = <2500000>;
 	qcom,init-voltage = <2200000>;
 	status = "okay";
 };
@@ -1236,6 +1162,7 @@
 
 &pm8994_l18_pin_ctrl {
 	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <2900000>;
 	qcom,init-voltage = <1800000>;
 };
 
@@ -1288,7 +1215,7 @@
 	qcom,init-pin-ctrl-enable = <0>;
 	qcom,init-pin-ctrl-mode = <0>;
 	regulator-min-microvolt = <1000000>;
-	regulator-max-microvolt = <1000000>;
+	regulator-max-microvolt = <1200000>;
 	qcom,init-voltage = <1000000>;
 	status = "okay";
 };
@@ -2021,57 +1948,33 @@
 		};
 	};
 
-	/* GPIO_47 : RGBC-IR & ToF I2C SDA */
+	/* GPIO_47 : NC */
 	msm_gpio_47: msm_gpio_47 {
 		mux {
 			pins = "gpio47";
-			function = "blsp_i2c3";
+			function = "gpio";
 		};
 
 		config {
 			pins = "gpio47";
 			drive-strength = <2>;
 			bias-disable;
-		};
-	};
-	msm_gpio_47_suspend: msm_gpio_47_suspend {
-		mux {
-			pins = "gpio47";
-			function = "blsp_i2c3";
-		};
-
-		config {
-			pins = "gpio47";
-			drive-strength = <2>;
-			bias-pull-down;
-			input-enable;
+			output-low;
 		};
 	};
 
-	/* GPIO_48 : RGBC-IR & ToF I2C SCL*/
+	/* GPIO_48 : NC */
 	msm_gpio_48: msm_gpio_48 {
 		mux {
 			pins = "gpio48";
-			function = "blsp_i2c3";
+			function = "gpio";
 		};
 
 		config {
 			pins = "gpio48";
 			drive-strength = <2>;
 			bias-disable;
-		};
-	};
-	msm_gpio_48_suspend: msm_gpio_48_suspend {
-		mux {
-			pins = "gpio48";
-			function = "blsp_i2c3";
-		};
-
-		config {
-			pins = "gpio48";
-			drive-strength = <2>;
-			bias-pull-down;
-			input-enable;
+			output-low;
 		};
 	};
 
@@ -2510,7 +2413,7 @@
 		};
 	};
 
-	/* GPIO_85 : TOF_INT */
+	/* GPIO_85 : NC */
 	msm_gpio_85: msm_gpio_85 {
 		mux {
 			pins = "gpio85";
@@ -2520,24 +2423,12 @@
 		config {
 			pins = "gpio85";
 			drive-strength = <2>;
-			bias-pull-up;
-		};
-	};
-	msm_gpio_85_suspend: msm_gpio_85_suspend {
-		mux {
-			pins = "gpio85";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio85";
-			drive-strength = <2>;
-			bias-pull-down;
-			input-enable;
+			bias-disable;
+			output-low;
 		};
 	};
 
-	/* GPIO_86 : RGBC_IR_INT */
+	/* GPIO_86 : NC */
 	msm_gpio_86: msm_gpio_86 {
 		mux {
 			pins = "gpio86";
@@ -2547,20 +2438,8 @@
 		config {
 			pins = "gpio86";
 			drive-strength = <2>;
-			bias-pull-up;
-		};
-	};
-	msm_gpio_86_suspend: msm_gpio_86_suspend {
-		mux {
-			pins = "gpio86";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio86";
-			drive-strength = <2>;
-			bias-pull-down;
-			input-enable;
+			bias-disable;
+			output-low;
 		};
 	};
 
@@ -3127,24 +3006,39 @@
 	};
 };
 
-&pcie0_clkreq_sleep {
-	config {
-		/delete-property/ bias-disable;
-		bias-pull-up;
-	};
-};
-
-&pcie0_wake_sleep {
-	config {
-		/delete-property/ bias-disable;
-		bias-pull-up;
-	};
-};
-
-&cdc_reset_active {
+&cam_sensor_mclk0_suspend {
 	config {
 		/delete-property/ bias-pull-down;
 		bias-disable;
+		output-low;
+	};
+};
+
+&cam_sensor_mclk2_suspend {
+	config {
+		/delete-property/ bias-pull-down;
+		bias-disable;
+		output-low;
+	};
+};
+
+&cci0_suspend {
+	mux {
+		function = "gpio";
+	};
+	config {
+		bias-pull-down;
+		input-enable;
+	};
+};
+
+&cci1_suspend {
+	mux {
+		function = "gpio";
+	};
+	config {
+		bias-pull-down;
+		input-enable;
 	};
 };
 
@@ -3174,6 +3068,15 @@
 	qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 40000000 50000000
 				80000000 100000000 200000000 4294967295>;
 	qcom,clk-rates = <400000 25000000 40000000 50000000 80000000 100000000 200000000>;
+};
+
+&mdss_hdmi_tx {
+        /delete-node/ pinctrl-names;
+        /delete-node/ pinctrl-0;
+        /delete-node/ pinctrl-1;
+        /delete-node/ pinctrl-2;
+        /delete-node/ pinctrl-3;
+        /delete-node/ pinctrl-4;
 };
 
 &wsa881x_211 {
@@ -3248,14 +3151,20 @@
 
 &labibb {
 	qcom,lab@de00 {
-		qcom,qpnp-lab-init-voltage = <6000000>;
-		qcom,qpnp-lab-init-lcd-voltage = <6000000>;
+		qcom,qpnp-lab-init-voltage = <5700000>;
+		qcom,qpnp-lab-init-lcd-voltage = <5700000>;
+		qcom,qpnp-lab-soft-start = <800>;
+		qcom,qpnp-lab-max-precharge-time = <300>;
+		qcom,qpnp-lab-pull-down-enable;
+		qcom,qpnp-lab-full-pull-down-enable;
 		interrupts = <0x3 0xde 0x0>;
 		interrupt-names = "lab_vreg_not_ok_interrupt";
 	};
 	qcom,ibb@dc00 {
-		qcom,qpnp-ibb-init-voltage = <6000000>;
-		qcom,qpnp-ibb-init-lcd-voltage = <6000000>;
+		qcom,qpnp-ibb-init-voltage = <5700000>;
+		qcom,qpnp-ibb-init-lcd-voltage = <5700000>;
+		qcom,qpnp-ibb-pull-down-enable;
+		qcom,qpnp-ibb-full-pull-down-enable;
 		interrupts = <0x3 0xdc 0x0>;
 		interrupt-names = "ibb_vreg_not_ok_interrupt";
 	};
@@ -3286,14 +3195,6 @@
 };
 
 &usb3 {
-	id_polling_use;
-	id_polling_up_interval = <2000>;
-	id_polling_up_period = <500>;
-	id_polling_pd_gpio = <&tlmm 24 0>;
-	qcom,usb_id_lv-vadc = <&pm8994_vadc>;
-	qcom,usbin-vadc = <&pmi8994_vadc>;
-	usb_switch_sel = <&pmi8994_gpios 9 0>;
-	usb_id_discharge = <&pmi8994_mpps 1 0>;
 	dwc3@6a00000 {
 		maximum-speed = "high-speed";
 	};
@@ -3319,116 +3220,8 @@
 	chan@74 { /* emmc_therm */
 		qcom,scale-function = <17>;
 	};
-
-	chan@79 {
-		label = "usb_id_lv";
-		reg = <0x79>;
-		qcom,decimation = <0>;
-		qcom,pre-div-channel-scaling = <0>;
-		qcom,calibration-type = "absolute";
-		qcom,scale-function = <0>;
-		qcom,hw-settle-time = <5>;
-		qcom,fast-avg-setup = <0>;
-	};
 };
 
 &pcie0 {
 	qcom,clk-power-manage-en;
-};
-
-&cam_sensor_mclk0_suspend {
-	config {
-		/delete-property/ bias-pull-down;
-		bias-disable;
-		output-low;
-	};
-};
-
-&cam_sensor_mclk2_suspend {
-	config {
-		/delete-property/ bias-pull-down;
-		bias-disable;
-		output-low;
-	};
-};
-
-&cci0_suspend {
-	mux {
-		function = "gpio";
-	};
-	config {
-		bias-pull-down;
-		input-enable;
-	};
-};
-
-&cci1_suspend {
-	mux {
-		function = "gpio";
-	};
-	config {
-		bias-pull-down;
-		input-enable;
-	};
-};
-
-&tlmm {
-	/* GPIO_49 : NC */
-	msm_gpio_49: msm_gpio_49 {
-		mux {
-			pins = "gpio49";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio49";
-			drive-strength = <2>;
-			/delete-property/ bias-pull-up;
-			bias-pull-down;
-		};
-	};
-
-	/* GPIO_73 : NC */
-	msm_gpio_73: msm_gpio_73 {
-		mux {
-			pins = "gpio73";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio73";
-			drive-strength = <2>;
-			bias-disable;
-			output-low;
-		};
-	};
-
-	/* GPIO_74 : NC */
-	msm_gpio_74: msm_gpio_74 {
-		mux {
-			pins = "gpio74";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio74";
-			drive-strength = <2>;
-			bias-disable;
-			output-low;
-		};
-	};
-
-	/* GPIO_77 : NC */
-	msm_gpio_77: msm_gpio_77 {
-		mux {
-			pins = "gpio77";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio77";
-			drive-strength = <2>;
-			bias-pull-down;
-		};
-	};
 };

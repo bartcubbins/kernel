@@ -292,13 +292,19 @@ config MSM_11AD
 	tristate "Platform driver for 11ad chip"
 	depends on PCI
 	depends on PCI_MSM
-	default y
 	---help---
 	  This module adds required platform support for wireless adapter based on
 	  Qualcomm Technologies, Inc. 11ad chip, integrated into MSM platform
 
 	  If you choose to build it as a module, it will be called
 	  msm_11ad_proxy.
+
+config PON_SOMC_ORG
+	bool "SoMC specific power on interface"
+	help
+	  This option enables SoMC specific power on interface.
+	  The implementation in this kernel is feature-reduced to support only
+	  the dvdd shutdown function.
 
 source "drivers/platform/msm/spmi/Kconfig"
 

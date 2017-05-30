@@ -3,6 +3,7 @@
  * driver source file
  *
  * Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014 Sony Mobile Communications Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1645,6 +1646,12 @@ struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev,
 	if (gpio_is_valid(pdata->status_gpio) & !(flags & OF_GPIO_ACTIVE_LOW))
 		pdata->caps2 |= MMC_CAP2_CD_ACTIVE_HIGH;
 
+	pdata->uim2_gpio = of_get_named_gpio(np, "uim2-gpios", 0);
+	if (!gpio_is_valid(pdata->uim2_gpio)) {
+		pr_err("## %s: gpio_is_valid(pdata->uim2_gpio)=%d: failure\n",
+			mmc_hostname(msm_host->mmc), pdata->uim2_gpio);
+	}
+
 	of_property_read_u32(np, "qcom,bus-width", &bus_width);
 	if (bus_width == 8)
 		pdata->mmc_bus_width = MMC_CAP_8_BIT_DATA;
@@ -1778,6 +1785,11 @@ struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev,
 
 	if (of_get_property(np, "qcom,core_3_0v_support", NULL))
 		pdata->core_3_0v_support = true;
+
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+	if (of_get_property(np, "somc,use-for-wifi", NULL))
+		pdata->use_for_wifi = true;
+#endif
 
 	return pdata;
 out:
@@ -2582,9 +2594,17 @@ static void sdhci_msm_check_power_status(struct sdhci_host *host, u32 req_type)
 	if (done)
 		init_completion(&msm_host->pwr_irq_completion);
 	else if (!wait_for_completion_timeout(&msm_host->pwr_irq_completion,
-				msecs_to_jiffies(MSM_PWR_IRQ_TIMEOUT_MS)))
+				msecs_to_jiffies(MSM_PWR_IRQ_TIMEOUT_MS))) {
 		__WARN_printf("%s: request(%d) timed out waiting for pwr_irq\n",
 					mmc_hostname(host->mmc), req_type);
+		MMC_TRACE(host->mmc,
+			"request(%d) timed out waiting for pwr_irq, 0xDC: 0x%08x | 0xE0: 0x%08x | 0xE8: 0x%08x\n",
+			req_type,
+			readl_relaxed(msm_host->core_mem + CORE_PWRCTL_STATUS),
+			readl_relaxed(msm_host->core_mem + CORE_PWRCTL_MASK),
+			readl_relaxed(msm_host->core_mem + CORE_PWRCTL_CTL));
+		mmc_stop_tracing(host->mmc);
+		}
 
 	pr_debug("%s: %s: request %d done\n", mmc_hostname(host->mmc),
 			__func__, req_type);
@@ -2706,7 +2726,24 @@ out:
 	return rc;
 }
 
+static void sdhci_msm_disable_controller_clock(struct sdhci_host *host)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_msm_host *msm_host = pltfm_host->priv;
 
+	if (atomic_read(&msm_host->controller_clock)) {
+		if (!IS_ERR(msm_host->clk))
+			clk_disable_unprepare(msm_host->clk);
+		if (!IS_ERR(msm_host->pclk))
+			clk_disable_unprepare(msm_host->pclk);
+		if (!IS_ERR(msm_host->ice_clk))
+			clk_disable_unprepare(msm_host->ice_clk);
+		sdhci_msm_bus_voting(host, 0);
+		atomic_set(&msm_host->controller_clock, 0);
+		pr_debug("%s: %s: disabled controller clock\n",
+			mmc_hostname(host->mmc), __func__);
+	}
+}
 
 static int sdhci_msm_prepare_clocks(struct sdhci_host *host, bool enable)
 {
@@ -3072,6 +3109,9 @@ void sdhci_msm_dump_vendor_regs(struct sdhci_host *host)
 	if (host->cq_host)
 		sdhci_msm_cmdq_dump_debug_ram(host);
 
+	MMC_TRACE(host->mmc, "Data cnt: 0x%08x | Fifo cnt: 0x%08x\n",
+		readl_relaxed(msm_host->core_mem + CORE_MCI_DATA_CNT),
+		readl_relaxed(msm_host->core_mem + CORE_MCI_FIFO_CNT));
 	pr_info("Data cnt: 0x%08x | Fifo cnt: 0x%08x | Int sts: 0x%08x\n",
 		readl_relaxed(msm_host->core_mem + CORE_MCI_DATA_CNT),
 		readl_relaxed(msm_host->core_mem + CORE_MCI_FIFO_CNT),
@@ -3709,6 +3749,19 @@ static void sdhci_msm_init(struct sdhci_host *host)
 				msm_host->pdata->pm_qos_data.latency);
 }
 
+static unsigned int sdhci_msm_get_current_limit(struct sdhci_host *host)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_msm_host *msm_host = pltfm_host->priv;
+	struct sdhci_msm_slot_reg_data *curr_slot = msm_host->pdata->vreg_data;
+	u32 max_curr = 0;
+
+	if (curr_slot && curr_slot->vdd_data)
+		max_curr = curr_slot->vdd_data->hpm_uA;
+
+	return max_curr;
+}
+
 static struct sdhci_ops sdhci_msm_ops = {
 	.crypto_engine_cfg = sdhci_msm_ice_cfg,
 	.crypto_cfg_reset = sdhci_msm_ice_cfg_reset,
@@ -3734,6 +3787,7 @@ static struct sdhci_ops sdhci_msm_ops = {
 	.init = sdhci_msm_init,
 	.pre_req = sdhci_msm_pre_req,
 	.post_req = sdhci_msm_post_req,
+	.get_current_limit = sdhci_msm_get_current_limit,
 };
 
 static void sdhci_set_default_hw_caps(struct sdhci_msm_host *msm_host,
@@ -3797,6 +3851,10 @@ static void sdhci_set_default_hw_caps(struct sdhci_msm_host *msm_host,
 		msm_host->use_updated_dll_reset = true;
 		msm_host->enhanced_strobe = true;
 	}
+
+#ifdef CONFIG_ARCH_SONY_LOIRE
+	msm_host->enhanced_strobe = false;
+#endif
 
 	/*
 	 * SDCC 5 controller with major version 1 and minor version 0x42,
@@ -3877,6 +3935,8 @@ static bool sdhci_msm_is_bootdevice(struct device *dev)
 	 */
 	return true;
 }
+
+extern void somc_wifi_mmc_host_register(struct mmc_host *host);
 
 static int sdhci_msm_probe(struct platform_device *pdev)
 {
@@ -4214,10 +4274,16 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	msm_host->mmc->caps |= msm_host->pdata->caps;
 	msm_host->mmc->caps |= MMC_CAP_AGGRESSIVE_PM;
 	msm_host->mmc->caps |= MMC_CAP_WAIT_WHILE_BUSY;
+#ifdef CONFIG_MMC_SD_DEFERRED_RESUME
+	if (!msm_host->pdata->nonremovable)
+		msm_host->mmc->caps |= MMC_CAP_RUNTIME_RESUME;
+#endif
 	msm_host->mmc->caps2 |= msm_host->pdata->caps2;
 	msm_host->mmc->caps2 |= MMC_CAP2_BOOTPART_NOACC;
 	msm_host->mmc->caps2 |= MMC_CAP2_HS400_POST_TUNING;
+#ifdef CONFIG_MMC_ENABLE_CLK_SCALE
 	msm_host->mmc->caps2 |= MMC_CAP2_CLK_SCALE;
+#endif
 	msm_host->mmc->caps2 |= MMC_CAP2_SANITIZE;
 	msm_host->mmc->caps2 |= MMC_CAP2_MAX_DISCARD_SIZE;
 	msm_host->mmc->caps2 |= MMC_CAP2_SLEEP_AWAKE;
@@ -4269,6 +4335,13 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 		}
 	}
 
+	if (gpio_is_valid(msm_host->pdata->uim2_gpio)) {
+		mmc_gpio_init_uim2(msm_host->mmc, msm_host->pdata->uim2_gpio);
+	} else {
+		pr_err("## %s: can't set uim2_gpio: %d\n", mmc_hostname(host->mmc),
+			msm_host->pdata->uim2_gpio);
+	}
+
 	if ((sdhci_readl(host, SDHCI_CAPABILITIES) & SDHCI_CAN_64BIT) &&
 		(dma_supported(mmc_dev(host->mmc), DMA_BIT_MASK(64)))) {
 		host->dma_mask = DMA_BIT_MASK(64);
@@ -4317,6 +4390,13 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	pm_runtime_enable(&pdev->dev);
 	pm_runtime_set_autosuspend_delay(&pdev->dev, MSM_AUTOSUSPEND_DELAY_MS);
 	pm_runtime_use_autosuspend(&pdev->dev);
+
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+	if (msm_host->pdata->use_for_wifi) {
+		msm_host->mmc->caps &= ~MMC_CAP_NEEDS_POLL;
+		somc_wifi_mmc_host_register(msm_host->mmc);
+	}
+#endif
 
 	msm_host->msm_bus_vote.max_bus_bw.show = show_sdhci_max_bus_bw;
 	msm_host->msm_bus_vote.max_bus_bw.store = store_sdhci_max_bus_bw;
@@ -4564,7 +4644,7 @@ static int sdhci_msm_suspend(struct device *dev)
 	}
 	ret = sdhci_msm_runtime_suspend(dev);
 out:
-
+	sdhci_msm_disable_controller_clock(host);
 	if (host->mmc->card && mmc_card_sdio(host->mmc->card)) {
 		sdio_cfg = sdhci_msm_cfg_sdio_wakeup(host, true);
 		if (sdio_cfg)

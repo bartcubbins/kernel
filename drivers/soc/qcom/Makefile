@@ -59,7 +59,11 @@ obj-$(CONFIG_MSM_RPM_RBCPR_STATS_V2_LOG) += rpm_rbcpr_stats_v2.o
 obj-$(CONFIG_MEM_SHARE_QMI_SERVICE)		+= memshare/
 obj-$(CONFIG_CP_ACCESS64) += cpaccess64.o
 obj-$(CONFIG_MSM_RPM_STATS_LOG) += rpm_stats.o rpm_master_stat.o rpm_rail_stats.o system_stats.o
+ifdef CONFIG_ARCH_MSM8996
 obj-$(CONFIG_HW_PERF_EVENTS) += perf_event_kryo.o perf_event_l2.o
+else
+obj-$(CONFIG_HW_PERF_EVENTS) += perf_event_l2.o
+endif
 obj-$(CONFIG_MSM_RPM_LOG) += rpm_log.o
 obj-$(CONFIG_MSM_JTAG) += jtag-fuse.o jtag.o
 obj-$(CONFIG_MSM_JTAG_MM) +=  jtag-fuse.o jtag-mm.o
@@ -84,6 +88,8 @@ ifdef CONFIG_MSM_SUBSYSTEM_RESTART
 	obj-y += ramdump.o
 endif
 
+obj-$(CONFIG_MSM_SMCMOD)		+= smcmod.o
+
 obj-$(CONFIG_MSM_SERVICE_NOTIFIER) += service-notifier.o
 obj-$(CONFIG_MSM_SYSMON_COMM) += sysmon.o sysmon-qmi.o
 obj-$(CONFIG_MSM_SECURE_BUFFER) += secure_buffer.o
@@ -98,3 +104,8 @@ obj-$(CONFIG_MSM_KERNEL_PROTECT) += kernel_protect.o
 obj-$(CONFIG_MSM_RTB) += msm_rtb-hotplug.o
 obj-$(CONFIG_MSM_REMOTEQDSS) += remoteqdss.o
 obj-$(CONFIG_QCOM_SMCINVOKE) += smcinvoke.o
+obj-$(CONFIG_MSM8994_V1_PMUIRQ_WA) += cti-pmu-irq.o
+obj-$(CONFIG_MSM_OCMEM) += ocmem.o ocmem_allocator.o ocmem_notifier.o
+obj-$(CONFIG_MSM_OCMEM) += ocmem_sched.o ocmem_api.o ocmem_rdm.o ocmem_core.o
+
+obj-$(CONFIG_ARCH_MSM8996) += console_setup.o

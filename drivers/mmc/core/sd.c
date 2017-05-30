@@ -307,12 +307,8 @@ static int mmc_read_switch(struct mmc_card *card)
 		return -ENOMEM;
 	}
 
-	/*
-	 * Find out the card's support bits with a mode 0 operation.
-	 * The argument does not matter, as the support bits do not
-	 * change with the arguments.
-	 */
-	err = mmc_sd_switch(card, 0, 0, 0, status);
+	/* Find out the supported Bus Speed Modes. */
+	err = mmc_sd_switch(card, 0, 0, 1, status);
 	if (err) {
 		/*
 		 * If the host or the card can't do the switch,
@@ -1224,11 +1220,13 @@ static int mmc_sd_suspend(struct mmc_host *host)
 {
 	int err;
 
+	MMC_TRACE(host, "%s: Enter\n", __func__);
 	err = _mmc_sd_suspend(host);
 	if (!err) {
 		pm_runtime_disable(&host->card->dev);
 		pm_runtime_set_suspended(&host->card->dev);
 	}
+	MMC_TRACE(host, "%s: Exit err: %d\n", __func__, err);
 
 	return err;
 }
@@ -1294,12 +1292,14 @@ static int mmc_sd_resume(struct mmc_host *host)
 {
 	int err = 0;
 
+	MMC_TRACE(host, "%s: Enter\n", __func__);
 	if (!(host->caps & MMC_CAP_RUNTIME_RESUME)) {
 		err = _mmc_sd_resume(host);
 		pm_runtime_set_active(&host->card->dev);
 		pm_runtime_mark_last_busy(&host->card->dev);
 	}
 	pm_runtime_enable(&host->card->dev);
+	MMC_TRACE(host, "%s: Exit err: %d\n", __func__, err);
 
 	return err;
 }
@@ -1355,6 +1355,11 @@ static int mmc_sd_power_restore(struct mmc_host *host)
 	mmc_claim_host(host);
 	ret = mmc_sd_init_card(host, host->card->ocr, host->card);
 	mmc_release_host(host);
+	if (ret) {
+		pr_err("%s: %s: mmc_sd_init_card_failed (%d)\n",
+				mmc_hostname(host), __func__, ret);
+		return ret;
+	}
 
 	ret = mmc_resume_clk_scaling(host);
 	if (ret)
