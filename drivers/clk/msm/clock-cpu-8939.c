@@ -598,7 +598,7 @@ static void populate_opp_table(struct platform_device *pdev,
 		apc0_dev = of_find_device_by_node(apc0_node);
 
 	apc1_dev = of_find_device_by_node(apc1_node);
-	if (!apc1_dev && !single_cluster) {
+	if (!apc0_dev && !single_cluster) {
 		pr_err("can't find the apc0 device node.\n");
 		return;
 	}
@@ -760,7 +760,11 @@ static int clock_a53_probe(struct platform_device *pdev)
 		clk_set_rate(&cci_clk.c, rate);
 	}
 
+#ifdef CONFIG_MACH_SONY_TULIP
+	for (mux_id = 0; mux_id < A53SS_MUX_CCI; mux_id++) {
+#else
 	for (mux_id = 0; mux_id < mux_num; mux_id++) {
+#endif
 		/* Force a PLL reconfiguration */
 		config_pll(mux_id);
 	}
