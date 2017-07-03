@@ -438,6 +438,7 @@
 #define TSENS6_8939_POINT1_MASK		0x03f00000
 #define TSENS7_8939_POINT1_MASK		0x0000003f
 #define TSENS8_8939_POINT1_MASK		0x0003f000
+#define TSENS9_8939_POINT1_MASK		0x07e00000
 
 #define TSENS0_8939_POINT2_MASK		0x00007e00
 #define TSENS1_8939_POINT2_MASK		0x07e00000
@@ -448,6 +449,8 @@
 #define TSENS6_8939_POINT2_MASK		0xfc000000
 #define TSENS7_8939_POINT2_MASK		0x00000fc0
 #define TSENS8_8939_POINT2_MASK		0x00fc0000
+#define TSENS9_8939_POINT2_MASK_0_4	0xf8000000
+#define TSENS9_8939_POINT2_MASK_5	0x00002000
 
 #define TSENS_8939_TSENS_CAL_SEL	0x7
 #define TSENS_8939_CAL_SEL_SHIFT	0
@@ -462,6 +465,7 @@
 #define TSENS5_8939_POINT1_SHIFT	8
 #define TSENS6_8939_POINT1_SHIFT	20
 #define TSENS8_8939_POINT1_SHIFT	12
+#define TSENS9_8939_POINT1_SHIFT	21
 
 #define TSENS0_8939_POINT2_SHIFT	9
 #define TSENS1_8939_POINT2_SHIFT	21
@@ -472,6 +476,9 @@
 #define TSENS6_8939_POINT2_SHIFT	26
 #define TSENS7_8939_POINT2_SHIFT	6
 #define TSENS8_8939_POINT2_SHIFT	18
+#define TSENS9_8939_POINT2_SHIFT_0_4	27
+#define TSENS9_8939_POINT2_SHIFT_5	8
+#define TSENS_NUM_SENSORS_V3		10
 
 #define TSENS_BASE0_8994_MASK		0x3ff
 #define TSENS_BASE1_8994_MASK		0xffc00
@@ -3605,7 +3612,7 @@ static int tsens_calib_msm8909_sensors(struct tsens_tm_device *tmdev)
 
 static int tsens_calib_8939_sensors(struct tsens_tm_device *tmdev)
 {
-	int i, tsens_base0_data = 0, tsens_base1_data = 0;
+	int i, tsens_base0_data = 0, tsens_base1_data = 0, v3_enable = 0;
 	int tsens0_point1 = 0, tsens0_point2 = 0;
 	int tsens1_point1 = 0, tsens1_point2 = 0;
 	int tsens2_point1 = 0, tsens2_point2 = 0;
@@ -3615,9 +3622,13 @@ static int tsens_calib_8939_sensors(struct tsens_tm_device *tmdev)
 	int tsens6_point1 = 0, tsens6_point2 = 0;
 	int tsens7_point1 = 0, tsens7_point2 = 0;
 	int tsens8_point1 = 0, tsens8_point2 = 0;
+	int tsens9_point1 = 0, tsens9_point2 = 0;
 	int tsens_calibration_mode = 0, temp = 0;
-	uint32_t calib_data[4] = {0, 0, 0, 0};
-	uint32_t calib_tsens_point1_data[9], calib_tsens_point2_data[9];
+	uint32_t calib_data[6] = {0, 0, 0, 0, 0, 0};
+	uint32_t calib_tsens_point1_data[10], calib_tsens_point2_data[10];
+
+	if (tmdev->tsens_num_sensor == TSENS_NUM_SENSORS_V3)
+		v3_enable = 1;
 
 	if (!tmdev->calibration_less_mode) {
 
@@ -3629,6 +3640,15 @@ static int tsens_calib_8939_sensors(struct tsens_tm_device *tmdev)
 			(TSENS_8939_EEPROM(tmdev->tsens_calib_addr)));
 		calib_data[3] = readl_relaxed(
 			(TSENS_8939_EEPROM(tmdev->tsens_calib_addr) + 0x4));
+
+		if (v3_enable) {
+			calib_data[4] = readl_relaxed(
+				(TSENS_8939_EEPROM(tmdev->tsens_calib_addr) -
+					0x58));
+			calib_data[5] = readl_relaxed(
+				(TSENS_8939_EEPROM(tmdev->tsens_calib_addr) -
+					0x54));
+		}
 
 		tsens_calibration_mode =
 			(calib_data[0] & TSENS_8939_TSENS_CAL_SEL);
@@ -3659,6 +3679,10 @@ static int tsens_calib_8939_sensors(struct tsens_tm_device *tmdev)
 		tsens7_point1 = (calib_data[3] & TSENS7_8939_POINT1_MASK);
 		tsens8_point1 = (calib_data[3] & TSENS8_8939_POINT1_MASK) >>
 			TSENS8_8939_POINT1_SHIFT;
+		if (v3_enable)
+			tsens9_point1 = (calib_data[4] &
+				TSENS9_8939_POINT1_MASK) >>
+					TSENS9_8939_POINT1_SHIFT;
 	}
 
 	if (tsens_calibration_mode == TSENS_TWO_POINT_CALIB) {
@@ -3682,6 +3706,13 @@ static int tsens_calib_8939_sensors(struct tsens_tm_device *tmdev)
 			TSENS7_8939_POINT2_SHIFT;
 		tsens8_point2 = (calib_data[3] & TSENS8_8939_POINT2_MASK) >>
 			TSENS8_8939_POINT2_SHIFT;
+		if (v3_enable)
+			tsens9_point2 = (calib_data[4] &
+				TSENS9_8939_POINT2_MASK_0_4) >>
+					TSENS9_8939_POINT2_SHIFT_0_4;
+			temp = (calib_data[5] & TSENS9_8939_POINT2_MASK_5) >>
+				TSENS9_8939_POINT2_SHIFT_5;
+			tsens9_point2 |= temp;
 	}
 
 	if (tsens_calibration_mode == 0) {
