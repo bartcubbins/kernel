@@ -43,13 +43,13 @@
 
 	clock_cpu: qcom,cpu-clock-8939@b111050 {
 		compatible = "qcom,cpu-clock-8939";
-		reg = <0x0b111050 0x8>,
-			<0xb011050 0x8>,
+		reg =   <0xb011050 0x8>,
+			<0xb111050 0x8>,
 			<0xb1d1050 0x8>,
 			<0x5800c 0x8>,
 			<0x58000 0x8>,
 			<0x58004 0x8>;
-		reg-names = "apcs-c0-rcg-base", "apcs-c1-rcg-base",
+		reg-names = "apcs-c1-rcg-base", "apcs-c0-rcg-base",
 				"apcs-cci-rcg-base", "efuse", "efuse1",
 				"efuse2";
 		vdd-c0-supply = <&apc_vreg_corner>;
@@ -479,14 +479,6 @@
 		qcom,coresight-jtagmm-cpu = <&CPU7>;
 	};
 
-	qcom,msm-thermal {
-		qcom,freq-control-list = <&CPU0 &CPU1 &CPU2 &CPU3
-					&CPU4 &CPU5 &CPU6 &CPU7>;
-		qcom,core-control-list = <&CPU0 &CPU1 &CPU2 &CPU3
-					&CPU4 &CPU5 &CPU6 &CPU7>;
-		qcom,freq-mitigation-control-list = <&CPU0 &CPU1 &CPU2 &CPU3
-						&CPU4 &CPU5 &CPU6 &CPU7>;
-	};
 };
 
 &bam_dmux {

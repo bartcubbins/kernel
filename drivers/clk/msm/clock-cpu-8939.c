@@ -46,7 +46,7 @@ enum {
 	A53SS_MUX_NUM,
 };
 
-const char *mux_names[] = {"c0", "c1", "cci"};
+const char *mux_names[] = { "c1", "c0", "cci"};
 
 struct cpu_clk_8939 {
 	u32 cpu_reg_mask;
@@ -209,8 +209,8 @@ static struct cpu_clk_8939 cci_clk = {
 };
 
 static struct clk_lookup cpu_clocks_8939[] = {
-	CLK_LIST(a53ssmux_bc),
 	CLK_LIST(a53ssmux_lc),
+	CLK_LIST(a53ssmux_bc),
 	CLK_LIST(a53ssmux_cci),
 	CLK_LIST(a53_bc_clk),
 	CLK_LIST(a53_lc_clk),
@@ -658,14 +658,14 @@ static int clock_8939_pm_event(struct notifier_block *this,
 	switch (event) {
 	case PM_POST_HIBERNATION:
 	case PM_POST_SUSPEND:
-		clk_unprepare(&a53_bc_clk.c);
 		clk_unprepare(&a53_lc_clk.c);
+		clk_unprepare(&a53_bc_clk.c);
 		clk_unprepare(&cci_clk.c);
 		break;
 	case PM_HIBERNATION_PREPARE:
 	case PM_SUSPEND_PREPARE:
-		clk_prepare(&a53_bc_clk.c);
 		clk_prepare(&a53_lc_clk.c);
+		clk_prepare(&a53_bc_clk.c);
 		clk_prepare(&cci_clk.c);
 		break;
 	default:
@@ -753,11 +753,7 @@ static int clock_a53_probe(struct platform_device *pdev)
 
 	mux_num = single_cluster ? A53SS_MUX_LC:A53SS_MUX_NUM;
 
-#ifdef CONFIG_MACH_SONY_TULIP
-	for (mux_id = 0; mux_id < A53SS_MUX_NUM; mux_id++) {
-#else
 	for (mux_id = 0; mux_id < mux_num; mux_id++) {
-#endif
 		rc = cpu_parse_devicetree(pdev, mux_id);
 		if (rc)
 			return rc;
