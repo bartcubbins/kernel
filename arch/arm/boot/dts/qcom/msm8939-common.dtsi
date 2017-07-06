@@ -528,6 +528,7 @@
 		qcom,sensors = <9>;
 		qcom,slope = <2911 2789 2906 2763 2922 2867 2833 2838 2840>;
 		qcom,sensor-id = <0 1 2 3 5 6 7 8 9>;
+		qcom,valid-status-check;
 	};
 
 	qcom,sensor-information {
@@ -2038,6 +2039,14 @@
 		qcom,fast-avg-setup = <2>;
 		qcom,btm-channel-number = <0x68>;
 	};
+};
+
+&pm8916_pon {
+	qcom,store-hard-reset-reason;
+};
+
+&pm8916_bms {
+	qcom,resume-soc = <99>;
 };
 
 #include "msm8939-gpu.dtsi"

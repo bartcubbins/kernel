@@ -1,0 +1,1805 @@
+[33mcommit 73f79ff7e185214e048332a9dadcf4e6ef729e02[m
+Author: Santosh Mardi <gsantosh@codeaurora.org>
+Date:   Mon Jan 9 15:03:43 2017 +0530
+
+    cpufreq: update hrtimer start with no-wakeup version.
+    
+    There is a possibility of waking up a de-queued task on
+    the same CPU it is currently running. When this happens,
+    Scheduler will wait infinitely and results in a watch dog bark.
+    
+    The above deadlock condition is observed when ksoftirqd is woken
+    up from the governor's load change callback.
+    - Task ksoftirqd enters interruptible sleep by calling schedule()
+    - As it is the only runnable task on this CPU, idle_balance()
+    is called.
+    - Few tasks are pulled to the current CPU and a notification
+    is sent to the governor for selecting appropriate frequency
+    - Governor arms a hrtimer which involves waking up ksoftirqd on
+    the same CPU
+    - ksoftirqd is not on the run-queue but it's on_cpu is set, so
+    Scheduler wait infinitely for it to be cleared.
+    
+    To avoid this scenario update the hrtimer start with no-wakeup
+    version which will not wake up softirqd rather it will set the
+    pending softirq which will not wake up the softirqd immediately
+    and softirq will get a chance to run soon.
+    
+    CRs-Fixed: 1108244
+    Change-Id: I46e015d80c85c94a8072b906d1ba836a4fa62cbb
+    Signed-off-by: Santosh Mardi <gsantosh@codeaurora.org>
+
+[33mcommit cd33e6cb8547eee45535ee62b161967fe99553c4[m
+Author: Amit Pundir <amit.pundir@linaro.org>
+Date:   Tue Dec 29 12:59:31 2015 +0530
+
+    ANDROID: skip building drivers as modules
+    
+    Few Android drivers e.g. uid_cputime and keyreset/combo,
+    cpufreq_interactive etc.. fail to build as kernel modules.
+    
+    Instead of fixing the build lets make these drivers
+    non-modular (switch config to "bool" from "tristate" in
+    Kconfig) since Android doesn't support building kernel
+    modules anyway.
+    
+    Signed-off-by: Amit Pundir <amit.pundir@linaro.org>
+
+[33mcommit 9eb8159d34f82c14124b8fd0a21b49671454600c[m
+Author: Amit Pundir <amit.pundir@linaro.org>
+Date:   Mon Aug 29 19:48:17 2016 +0530
+
+    DEBUG: cpufreq: fix cpu_capacity tracing build for non-smp systems
+    
+    cpu curr capacity can only be traced for SMP systems. Non-SMP builds
+    will fail with:
+    
+    drivers/cpufreq/cpufreq.c: In function ‘cpufreq_freq_transition_begin’:
+    drivers/cpufreq/cpufreq.c:438:22: error: implicit declaration of function ‘capacity_curr_of’ [-Werror=implicit-function-declaration]
+       trace_cpu_capacity(capacity_curr_of(cpu), cpu);
+                          ^
+    
+    Fixes: Change-Id: Icd0930d11068fcb7d2b6a9a48e7ed974904e1081
+           ("DEBUG: sched,cpufreq: add cpu_capacity change tracepoint")
+    Signed-off-by: Amit Pundir <amit.pundir@linaro.org>
+
+[33mcommit caa852b8a77edf30d804f610a0fb0c534d16c06c[m
+Author: Srinath Sridharan <srinathsr@google.com>
+Date:   Mon Aug 1 11:34:05 2016 +0100
+
+    sched/cpufreq_sched: Consolidated update
+    
+    Contains:
+    
+    sched/cpufreq_sched: use shorter throttle for raising OPP
+    
+    Avoid cases where a brief drop in load causes a change to a low OPP
+    for the full throttle period. Use a shorter throttle period for
+    raising OPP than for lowering OPP.
+    
+    sched-freq: Fix handling of max/min frequency
+    
+    This reverts commit 9726142608f5b3bf5df4280243c9d324e692a510.
+    
+    Change-Id: Ia78095354f7ad9492f00deb509a2b45112361eda
+    
+    sched/cpufreq: Increasing throttle_down_nsec to 50ms
+    
+    Change-Id: I2d8969cf2a64fa719b9dd86f43f9dd14b1ff84fe
+    
+    sched-freq: make throttle times tunable
+    
+    Change-Id: I127879645367425b273441d7f0306bb15d5633cb
+    
+    Signed-off-by: Srinath Sridharan <srinathsr@google.com>
+    Signed-off-by: Todd Kjos <tkjos@google.com>
+    Signed-off-by: Juri Lelli <juri.lelli@arm.com>
+
+[33mcommit 7a98042538a7f5628c31be382c2097fed713e632[m
+Author: Patrick Bellasi <patrick.bellasi@arm.com>
+Date:   Fri Jul 22 11:35:59 2016 +0100
+
+    FIXUP: sched: fix build for non-SMP target
+    
+    Currently the build for a single-core (e.g. user-mode) Linux is broken
+    and this configuration is required (at least) to run some network tests.
+    
+    The main issues for the current code support on single-core systems are:
+    1. {se,rq}::sched_avg is not available nor maintained for !SMP systems
+       This means that load and utilisation signals are NOT available in single
+       core systems. All the EAS code depends on these signals.
+    2. sched_group_energy is also SMP dependant. Again this means that all the
+       EAS setup and preparation code (energyn model initialization) has to be
+       properly guarded/disabled for !SMP systems.
+    3. SchedFreq depends on utilization signal, which is not available on
+       !SMP systems.
+    4. SchedTune is useless on unicore systems if SchedFreq is not available.
+    5. WALT machinery is not required on single-core systems.
+    
+    This patch addresses all these issues by enforcing some constraints for
+    single-core systems:
+    a) WALT, SchedTune and SchedTune are now dependant on SMP
+    b) The default governor for !SMP systems is INTERACTIVE
+    c) The energy model initialisation/build functions are
+    d) Other minor code re-arrangements and CONFIG_SMP guarding to enable
+       single core builds.
+    
+    Signed-off-by: Patrick Bellasi <patrick.bellasi@arm.com>
+
+[33mcommit 5eb2e97f3ab0569ea4b7f85b8419f71835dc88cb[m
+Author: Juri Lelli <juri.lelli@arm.com>
+Date:   Thu Apr 30 17:35:23 2015 +0100
+
+    DEBUG: sched,cpufreq: add cpu_capacity change tracepoint
+    
+    This is useful when we want to compare cpu utilization and
+    cpu curr capacity side by side.
+    
+    Change-Id: Icd0930d11068fcb7d2b6a9a48e7ed974904e1081
+    Signed-off-by: Juri Lelli <juri.lelli@arm.com>
+
+[33mcommit dc5dab6ff6ecdb98b45196893eec7eb78174391a[m
+Author: Michael Turquette <mturquette@baylibre.com>
+Date:   Tue Jun 30 12:45:48 2015 +0100
+
+    sched: scheduler-driven cpu frequency selection
+    
+    Scheduler-driven CPU frequency selection hopes to exploit both
+    per-task and global information in the scheduler to improve frequency
+    selection policy, achieving lower power consumption, improved
+    responsiveness/performance, and less reliance on heuristics and
+    tunables. For further discussion on the motivation of this integration
+    see [0].
+    
+    This patch implements a shim layer between the Linux scheduler and the
+    cpufreq subsystem. The interface accepts capacity requests from the
+    CFS, RT and deadline sched classes. The requests from each sched class
+    are summed on each CPU with a margin applied to the CFS and RT
+    capacity requests to provide some headroom. Deadline requests are
+    expected to be precise enough given their nature to not require
+    headroom. The maximum total capacity request for a CPU in a frequency
+    domain drives the requested frequency for that domain.
+    
+    Policy is determined by both the sched classes and this shim layer.
+    
+    Note that this algorithm is event-driven. There is no polling loop to
+    check cpu idle time nor any other method which is unsynchronized with
+    the scheduler, aside from a throttling mechanism to ensure frequency
+    changes are not attempted faster than the hardware can accommodate them.
+    
+    Thanks to Juri Lelli <juri.lelli@arm.com> for contributing design ideas,
+    code and test results, and to Ricky Liang <jcliang@chromium.org>
+    for initialization and static key inc/dec fixes.
+    
+    [0] http://article.gmane.org/gmane.linux.kernel/1499836
+    
+    [smuckle@linaro.org: various additions and fixes, revised commit text]
+    
+    Change-Id: Idca9ccbd0da925a176289ce705eba20d396c2bc0
+    CC: Ricky Liang <jcliang@chromium.org>
+    Signed-off-by: Michael Turquette <mturquette@baylibre.com>
+    Signed-off-by: Juri Lelli <juri.lelli@arm.com>
+    Signed-off-by: Steve Muckle <smuckle@linaro.org>
+    (am from https://patchwork.kernel.org/patch/7804841/)
+    Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+
+[33mcommit 0e842d64d36be0a0f031463236e9de5451b85ed3[m
+Author: Michael Turquette <mturquette@baylibre.com>
+Date:   Tue Jun 30 12:45:27 2015 +0100
+
+    cpufreq: introduce cpufreq_driver_is_slow
+    
+    Some architectures and platforms perform CPU frequency transitions
+    through a non-blocking method, while some might block or sleep. Even
+    when frequency transitions do not block or sleep they may be very slow.
+    This distinction is important when trying to change frequency from
+    a non-interruptible context in a scheduler hot path.
+    
+    Describe this distinction with a cpufreq driver flag,
+    CPUFREQ_DRIVER_FAST. The default is to not have this flag set,
+    thus erring on the side of caution.
+    
+    cpufreq_driver_is_slow() is also introduced in this patch. Setting
+    the above flag will allow this function to return false.
+    
+    [smuckle@linaro.org: change flag/API to include drivers that are too
+     slow for scheduler hot paths, in addition to those that block/sleep]
+    
+    Change-Id: I6f1d929ee175da71d2939c00bded8aacbca37ec5
+    Cc: Rafael J. Wysocki <rafael@kernel.org>
+    Cc: Viresh Kumar <viresh.kumar@linaro.org>
+    Signed-off-by: Michael Turquette <mturquette@baylibre.com>
+    Signed-off-by: Steve Muckle <smuckle@linaro.org>
+    (am from https://patchwork.kernel.org/patch/7804821/)
+    Signed-off-by: Punit Agrawal <punit.agrawal@arm.com>
+
+[33mcommit 8fe31fef3ba1ac6f20b17a6a03d4eb26bab6f680[m
+Author: Dietmar Eggemann <dietmar.eggemann@arm.com>
+Date:   Tue Sep 22 16:47:48 2015 +0100
+
+    cpufreq: Max freq invariant scheduler load-tracking and cpu capacity support
+    
+    Implements cpufreq_scale_max_freq_capacity() to provide the scheduler
+    with a maximum frequency scaling correction factor for more accurate
+    load-tracking and cpu capacity handling by being able to deal with
+    frequency capping.
+    
+    This scaling factor describes the influence of running a cpu with a
+    current maximum frequency lower than the absolute possible maximum
+    frequency on load tracking and cpu capacity.
+    
+    The factor is:
+    
+            current_max_freq(cpu) << SCHED_CAPACITY_SHIFT / max_freq(cpu)
+    
+    In fact, max_freq_scale should be a struct cpufreq_policy data member.
+    But this would require that the scheduler hot path (__update_load_avg())
+    would have to grab the cpufreq lock. This can be avoided by using per-cpu
+    data initialized to SCHED_CAPACITY_SCALE for max_freq_scale.
+    
+    Change-Id: I5bcf45a208deecd5d8d063adb9e1f06bda44ce98
+    Signed-off-by: Dietmar Eggemann <dietmar.eggemann@arm.com>
+
+[33mcommit 1ea041e2439d170c25a311d431a80898a35cc7bf[m
+Author: Dietmar Eggemann <dietmar.eggemann@arm.com>
+Date:   Thu Sep 17 16:10:56 2015 +0100
+
+    cpufreq: Frequency invariant scheduler load-tracking support
+    
+    Implements cpufreq_scale_freq_capacity() to provide the scheduler with a
+    frequency scaling correction factor for more accurate load-tracking.
+    
+    The factor is:
+    
+            current_freq(cpu) << SCHED_CAPACITY_SHIFT / max_freq(cpu)
+    
+    In fact, freq_scale should be a struct cpufreq_policy data member. But
+    this would require that the scheduler hot path (__update_load_avg()) would
+    have to grab the cpufreq lock. This can be avoided by using per-cpu data
+    initialized to SCHED_CAPACITY_SCALE for freq_scale.
+    
+    Change-Id: I8aa1c424a33794db78c35a80c57184d992e71d2b
+    Signed-off-by: Dietmar Eggemann <dietmar.eggemann@arm.com>
+
+[33mcommit 4f3d7c95096e813844cedd39a5a208742eeb2b2e[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Wed Jul 5 23:52:22 2017 +0300
+
+    DEBUG
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 394822e674789a653338965675e2e4ee50fcf145[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Tue Jul 4 01:31:25 2017 +0300
+
+    DEBUG: thermal: msm-tsens: add missing TSENS9 for MSM8939
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit ddccd3588add3aa2cd2550af8150d5cd70237aec[m
+Author: Kiran Gunda <kgunda@codeaurora.org>
+Date:   Wed May 3 12:11:20 2017 +0530
+
+    regulator: onsemi-ncp6335d: Add is_enabled API support
+    
+    Without is_enabled function support, regualtor framework treats
+    it as an always on regulator and does not invoke the regulator enable
+    function call. Hence, add support for it.
+    
+    Also, define a parent supply ("vin") for the regulator. This parent
+    can be used to pin-control the regulator. While at it, change the initcall
+    level to subsys_init. so that the driver registers after the parent supply
+    ("vin" - provided by fixed-regualtor).
+    
+    Change-Id: I93e870d2e4b89f7874c3e17be91bc417dadf1777
+    Signed-off-by: Kiran Gunda <kgunda@codeaurora.org>
+
+[33mcommit aba1d0d1d2dbae9449946c63cbc0ba0e51270cce[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 19:37:17 2017 +0300
+
+    defconfig: kanuti: use legacy KGSL stack
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 92d3f7052fcaf756abc82dfa59d533196b1a9c58[m
+Merge: ac668fab16fe e926f0fe1108
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 19:33:30 2017 +0300
+
+    Merge remote-tracking branch 'kholk/aosp/LA.UM.5.5.r1_ADRENO' into aosp/LA.UM.5.5.r1_kanuti_test
+
+[33mcommit ac668fab16fe67b61ec3b7af841a79e6416ffe03[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 19:23:20 2017 +0300
+
+    defconfig: kanuti: enable CNSS_CRYPTO
+    
+    We need this for successful prima compilation. Without this we get:
+    prima/CORE/VOSS/src/vos_utils.c:249: undefined reference to `wcnss_wlan_crypto_alloc_ahash'
+    prima/CORE/VOSS/src/vos_utils.c:280: undefined reference to `wcnss_wlan_crypto_ahash_setkey'
+    prima/CORE/VOSS/src/vos_utils.c:289: undefined reference to `wcnss_wlan_crypto_ahash_digest'
+    prima/CORE/VOSS/src/vos_utils.c:322: undefined reference to `wcnss_wlan_crypto_free_ahash'
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit f7d25252da63465c0426a0451584a691b8939c1e[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 18:29:20 2017 +0300
+
+    defconfig: kanuti: enable prima WLAN driver
+    
+    Now we can compile prima WLAN without errors so let's turn it on.
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 63521407d23170d34cfcbc076f31388b234d05c9[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 18:21:09 2017 +0300
+
+    drivers: staging: prima: Kconfig: add QCOM_TDLS
+    
+    We need this for successful compilation
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit d1407089d004e7a0fabd69ccb57d63f19413bddd[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 18:20:31 2017 +0300
+
+    drivers: staging: prima: remove unneeded firmware and build files
+    
+    We don't need this if we build prima driver as a part of the kernel
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit ef6ee25a926a50c680f527a058e383eed0abdb8b[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 18:01:22 2017 +0300
+
+    drivers: staging: prima: update prima WLAN driver to 3.0.11.85
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit e7f376026f31b87ca837d335034a4c4d9453baec[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 15:46:06 2017 +0300
+
+    arm: DT: msm8939-cpu: add mitigation profiles to the CPU nodes
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit aa6d3d3219be49afebc1749a86a0c3aebaa225b6[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 15:41:51 2017 +0300
+
+    arm: DT: Tulip: fix sdcard detection
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 9015ceae6c2a29d347da2938df364f565e99a130[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 15:24:06 2017 +0300
+
+    defconfig: kanuti: enable CYTTSP4 touchpad driver
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 48ff04e7fb208e9c640ab55235581e09cadc13cb[m
+Author: Erik Castricum <erikcas1972@gmail.com>
+Date:   Sat Oct 22 04:03:04 2016 -0400
+
+    cyttsp4: Fix for tulip
+    
+    Change-Id: I908c5a6cbc1da5769454cd77189a384d99430205
+    Signed-off-by: Erik Castricum <erikcas1972@gmail.com>
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 53df8640be0fddab5c51fbf8259426844c2b8e36[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Mar 23 14:37:36 2016 +0100
+
+    input: TS: cyttsp4: Silence useless debugging output
+    
+    Having a line describing suspend/resume and touch events is
+    useless bloat.
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 4adb8deba99abbdc057767e930959d463996636e[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:12:20 2016 +0200
+
+    input: ts: cyttsp4: Use pm_runtime_idle, fix printks
+    
+    On kernel 3.18 we don't use pm_generic_runtime_idle anymore,
+    fix accordingly.
+    
+    Moreover, fix the type declaration for printed type in printks
+    to stop stupid warnings (and sanitize code).
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 2140b99d01bcc08f10eb0a7db37f3dc71d547dc7[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Sun Sep 13 12:37:06 2015 +0200
+
+    drivers: input: touch: upgrade cypress Gen4 driver
+    
+    driver is picked from tulip kernel
+    
+    driver implements pinctrl suppport
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 5f0b16e14e0d28e1a38e18df00178d1e5c83bc21[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Tue Sep 8 20:06:56 2015 +0200
+
+    drivers: input: touch: add support for cypress gen5
+    
+    driver used by kanuti platform
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 293de0c331b13104d1ee191e047efd9fff2d658f[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Wed Sep 2 13:38:23 2015 +0200
+
+    drivers: input: ts: Add CYTTSP4 touchscreen driver
+    
+    Includes following commits:
+    Hash: d3c9c88fd4588e45395dbcd09ba649e8de34089b
+    From: "Angelo G. Del Regno -- EternityProject Team Manager" <kholk11@gmail.com>
+    Date: Thu, 22 Jan 2015 22:50:04 +0000
+    
+        drivers: input: ts: cyttsp4: Fix input_mt_init_slots for 3.10
+    
+    Hash: 06acf82dc60cb76a5b95abb2f09ffc8680d2930d
+    From: "Angelo G. Del Regno -- EternityProject Team Manager" <kholk11@gmail.com>
+    Date: Thu, 22 Jan 2015 23:18:01 +0000
+    
+       drivers: input: ts: cyttsp4: Fix sysfs permissions
+    
+    Some entries had write permissions but no store handler, some
+    others had numerically-specified permissions.
+    Make read-only the entries without store handler and fix the
+    others to use POSIX symbolic constants.
+    
+    Hash: cf26ef6d4479813cdf40e02cdc33a1373b58aa98
+    From: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+    Date: Tue, 17 Feb 2015 11:44:18 +0100
+    
+       cyttsp4: fix wrong permissions
+    
+    driver had wrong permissions set causing 3.10 kernel to spam kmsg
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 359940c1a594a8ea059bb21627277e366f511219[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 15:14:49 2017 +0300
+
+    clk: msm: clock-cpu-msm8939: fix logic of MSM8939 clock driver
+    
+    After adding support for single cluster target we can't initialize CPU cluster on Tulip.
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 731f2f7d22fcf19eb22d65db4c99375187f14941[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sun Jun 11 14:16:39 2017 +0300
+
+    arm: DT: msm8939-pm: disable rbcpr stats logging
+    
+    This causes to the kernel crash
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit adb05fee9b510cbc3d528f2f13efb42b91fba443[m
+Author: Pavel Dubrova <pashadubrova@gmail.com>
+Date:   Sat Jun 10 13:09:43 2017 +0300
+
+    defconfig: kanuti: rework Tulip defconfig for 3.18 kernel
+    
+    Signed-off-by: Pavel Dubrova <pashadubrova@gmail.com>
+
+[33mcommit 85afe1622db6d417cd238b2f0b288043e450354c[m
+Merge: 94395ce655a3 99cd989c9e70
+Author: AngeloGioacchino Del Regno <kholk11@gmail.com>
+Date:   Wed Apr 26 10:38:59 2017 +0200
+
+    Merge pull request #8 from pablomh/android-7.1_kanuti
+    
+    Allow kanuti/tulip kernel to build successfully
+
+[33mcommit 99cd989c9e7010bcebaf6f0b29e860c44582ddea[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 22:10:40 2017 +0000
+
+    HACK - defconfig: kanuti: Disable temporarily prima WLAN
+    
+    Until we know why it fails building:
+    
+    In file included from ../../../../../../../repos/android-7.1/kernel/sony/msm/drivers/staging/prima/CORE/TL/inc/wlan_qct_tl.h:83:0,
+                     from ../../../../../../../repos/android-7.1/kernel/sony/msm/drivers/staging/prima/CORE/BAP/src/bapApiData.c:71:
+    ../../../../../../../repos/android-7.1/kernel/sony/msm/drivers/staging/prima/CORE/VOSS/inc/vos_api.h:512:23: error: unknown type name per_packet_stats
+     void get_rate_and_MCS(per_packet_stats *stats, uint32 rateindex);
+                           ^
+    /repos/android-7.1/kernel/sony/msm/scripts/Makefile.build:257: recipe for target drivers/staging/prima/CORE/BAP/src/bapApiData.o failed
+    make[4]: *** [drivers/staging/prima/CORE/BAP/src/bapApiData.o] Error 1
+    /repos/android-7.1/kernel/sony/msm/scripts/Makefile.build:402: recipe for target drivers/staging/prima failed
+    make[3]: *** [drivers/staging/prima] Error 2
+
+[33mcommit 5dffaa118d473fbd132508cf0fb1863a4ab492e6[m
+Author: Erik Castricum <erikcas1972@gmail.com>
+Date:   Sat Oct 22 08:50:43 2016 -0400
+
+    kanuti: defconfig: enable DMA
+    
+    Change-Id: I7961a384084196d19ea5231665c2715c22760d52
+    Signed-off-by: Erik Castricum <erikcas1972@gmail.com>
+
+[33mcommit 7ff96e8bcb9cde7889983fc07e5c849bfe69c75a[m
+Author: Erik Castricum <erikcas1972@gmail.com>
+Date:   Tue Oct 18 15:57:38 2016 -0400
+
+    defconfig: tulip: enable zram
+    
+    it is already configured on the device
+    
+    Change-Id: Ifdf3c7b74e1f859daed3500018939dfad31bbb65
+    Signed-off-by: Erik Castricum <erikcas1972@gmail.com>
+
+[33mcommit a699a5684d89e4ad2b4878d1ef5f7cd7f25a265a[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 22:23:43 2017 +0000
+
+    drivers: video: msm: mdss_fb: Remove unused var
+
+[33mcommit b18d86b31699758fd0704b671a0cc3e3727adaf9[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 22:38:53 2017 +0000
+
+    defconfig: kanuti: Enable WCD9330_CODEC and WCD9335_CODEC
+
+[33mcommit 9a7960ed70ad1c60c0c4b0e20416f16d26430250[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 22:35:18 2017 +0000
+
+    defconfig: kanuti: Enable SOUNDWIRE
+
+[33mcommit 73c15137ae03032308af07302e8f462d82a07345[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 22:32:07 2017 +0000
+
+    defconfig: kanuti: Rename CONFIG_CRYPTO_DEV_QCE to CONFIG_CRYPTO_DEV_QCOM_MSM_QCE
+
+[33mcommit 03b00b8add7f094e8937b9ffcb40668acfa03785[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 10:41:43 2017 +0000
+
+    defconfig: kanuti: Switch CONFIG_SPMI* to CONFIG_MSM_SPMI*
+
+[33mcommit 81de9d742ad727baec9209cbf581668b24a26aac[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 09:28:11 2017 +0000
+
+    defconfig: kanuti: Disable CONFIG_PFT
+
+[33mcommit 115b3560a5e475b8f5dc9f655605972d50c52a7a[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 09:43:40 2017 +0000
+
+    defconfig: kanuti: Enable CONFIG_DMA_CMA
+
+[33mcommit 9c7c037de94f6378f9fdec0ce40ca3a4aad7f056[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 25 09:04:29 2017 +0000
+
+    defconfig: kanuti: Disable CONFIG_STRICT_MEMORY_RWX
+
+[33mcommit 5919cf54ba93b359c028d36834065a68f8ab4515[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Mon Apr 24 17:11:44 2017 +0000
+
+    Add kanuti to list of platforms allowed to build 3.18 kernel
+
+[33mcommit 94395ce655a37919b8a7d1ff341120b9dfd777f1[m
+Merge: 757c4c5434cd b5a569668629
+Author: AngeloGioacchino Del Regno <kholk11@gmail.com>
+Date:   Fri Apr 21 15:09:42 2017 +0200
+
+    Merge pull request #7 from pablomh/android-7.1_kanuti
+    
+    clk: msm: Fix warning in clock-cpu-8936 driver
+
+[33mcommit b5a5696686293b8749b9df3be82261d374654ce5[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Fri Apr 21 12:04:20 2017 +0000
+
+    clk: msm: Fix warning in clock-cpu-8936 driver
+
+[33mcommit 757c4c5434cde2fd68e0cc099eaa23c06785a010[m
+Merge: c5b6ac0dff93 353927db3423
+Author: AngeloGioacchino Del Regno <kholk11@gmail.com>
+Date:   Wed Apr 12 18:57:10 2017 +0200
+
+    Merge pull request #6 from pablomh/android-7.1_kanuti
+    
+    Update changes from 1.3.3
+
+[33mcommit 353927db342374de70bb2bca2cafa0243be68563[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Sun Mar 5 09:11:22 2017 +0100
+
+    drivers: staging: prima: disable DEBUG
+    
+    debugs should not be enabled on a regular build
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit 1a6f2beddeaa38f724a6c9cbc1912c3283f5c4e7[m
+Author: Bart. Cubbins <pashkensia@gmail.com>
+Date:   Thu Mar 2 22:36:28 2017 +0200
+
+    drivers: staging: prima: switch to generic nl80211_testmode
+    
+    after this commit: 861d35ed3cd23b90659a3fae198a9851d8adec3f
+    we received an error when compiling prima. so let's switch to generic nl80211_testmode
+
+[33mcommit 3a296fb23961fedd4ac26575e4289fecdd5734df[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Thu Mar 2 13:00:03 2017 +0100
+
+    defconfig: kanuti: disable NL80211_TESTMODE
+    
+    The nl80211 testmode command helps implementing things like
+    factory calibration or validation tools for wireless chips.
+    
+    Select this option ONLY for kernels that are specifically
+    built for such purposes.
+    
+    Debugging tools that are supposed to end up in the hands of
+    users should better be implemented with debugfs.
+    
+    Say N.
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit 377d18916e6943f17ff71430f21dce283a1d5611[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Wed Apr 12 15:18:13 2017 +0000
+
+    LA.UM.5.5.r1 Prima WLAN driver
+
+[33mcommit 833d7607723676480b91601d62cda05dffe4d00e[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Mon Apr 10 10:55:46 2017 +0000
+
+    kanuti: Enable PSTORE
+    
+    Signed-off-by: Pablo Mendez Hernandez <pablomh@gmail.com>
+
+[33mcommit 56071873de2bfa55f876f67758438165d1873c7c[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Mon Apr 10 10:53:23 2017 +0000
+
+    sony: msm8939: add ramoops mem reservation
+    
+    Registry values taken from 26.3.A.1.33 copyleft
+    
+    Signed-off-by: Pablo Mendez Hernandez <pablomh@gmail.com>
+
+[33mcommit 885e9f7da7ef2c52479a92cddd55e7a375370d8c[m
+Author: Pablo Mendez Hernandez <pablomh@gmail.com>
+Date:   Tue Apr 11 05:13:07 2017 +0000
+
+    arm: DT: remove stray .rej file
+
+[33mcommit c5b6ac0dff93c6de73215c15f0c99d43440ea920[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Tue Sep 15 15:37:11 2015 +0200
+
+    drivers: power+usb: Port charging algos for Tulip
+    
+    Without those, we would be damaging the battery.
+
+[33mcommit 07e5471a90622339ddb6e546e6c3d6838c0988fe[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:56:36 2017 +0100
+
+    arm: DT: Kanuti: Add MSM8936 Tulip DT
+    
+    Development purposes only.
+
+[33mcommit 4db408ef3b836574c03019bba6f94823b4a0177e[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:53:50 2017 +0100
+
+    arm: DT: msm8939-common: Specify interrupt names for HSUSB node.
+    
+    It was not necessary to do that back in the 3.10 days. Now it is.
+
+[33mcommit 114e0529cb3abe14ed5da6018c2fdcd6d4696ad3[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:53:26 2017 +0100
+
+    arm: DT: msm8939-gpu: Fix clock names for KGSL
+    
+    The new clock names are scfg_clk and gtcu_clk.
+
+[33mcommit 1637799d16a776bb2ddb09c84e4d58e33866f5be[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:51:05 2017 +0100
+
+    gpu: msm: Adreno: Move writereg64 as an inline function to header.
+    
+    For some reason, the Adreno driver is not happy on some 64-bit
+    targets. Now it's happy.
+    
+    I don't really know the reason, but I suppose it's about very
+    strict timings.
+
+[33mcommit 57b0c1926ebb6bb3cd31339f7f95b16d2411b266[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:49:36 2017 +0100
+
+    bluetooth: btfm: Fix includes for btfm_slim and its codec
+
+[33mcommit 306886d2331d831514d348ce8e24b9d75965e423[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:47:06 2017 +0100
+
+    power: smb1360-charger-fg: Send probe commands only after setup
+    
+    ....because it would be VERY stupid to try to send i2c commands
+    to the chip when we haven't set up the parameters that tells us
+    where to send such commands.
+
+[33mcommit afbee8a96a182bbe5b5db9f8c1de2a8e2ebb5e3b[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:44:41 2017 +0100
+
+    arm: DT: msm8939-pm: Specify reset levels for SPM levels
+    
+    The new SPM driver requires us to specify reset level.
+
+[33mcommit 19f94be17b66ca89cfaa677a51559b2bdac03ac5[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:42:14 2017 +0100
+
+    arm: DT: msm8939-gpu: Various fixes to boot for devbw and kgsl
+    
+    Add active-only flag to bwmon, so that we can release the bus vote
+    when the CPU subsystem is inactive (and not race).
+    Add a timeout to enter deeper power saving state from NAP to allow
+    the device to sleep correctly.
+    (QUIRK) Add empty ocmem-bus-client so that kernel will be happy.
+
+[33mcommit 97afe559db5ef69d1a615dfed9cb1c0db4c69c60[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:40:59 2017 +0100
+
+    arm: DT: msm8939-common: Enable the Random Number Generator HW driver
+    
+    Using the internal RNG is waaaaaay faster!
+
+[33mcommit 4c0c822d7d17b54acdb735d8ed816496765ee77f[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:39:52 2017 +0100
+
+    arm: DT: msm8936-pm: Specify reset levels for SPM levels
+    
+    The new SPM driver requires us to specify reset level.
+
+[33mcommit 380b063fd1231420eb1eb703ddcb4a7c12e0b5d9[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sat Sep 24 17:29:45 2016 +0200
+
+    arm: DT: msm8939-pinctrl: Remove input-debounce on MDSS TE pingroup
+    
+    The input debounce function is not supported on MSM pinctrl
+    and, in any case, it's not even required.
+
+[33mcommit 767592251b4b3b6ee3719aadf2e115b0cca870a2[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Thu Jun 30 15:58:55 2016 +0200
+
+    soc: qcom: Add Qualcomm SMC Module driver
+    
+    Add the Qualcomm Secure Monitor Call (SMC) Module driver which
+    provides a way to execute the SMC to switch from non-secure to
+    secure execution in MSM8x26 and MSM8x74 family targets.
+
+[33mcommit 10b13b4992344c6cc8b4a863140a962974cee50d[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 18:47:31 2016 +0200
+
+    arm: DT: msm8939-pm: Write new configuration for SPM commands
+    
+    New SPM wants "qcom,modeX" nodes for better feature configuration
+    of the cpu power management.
+    Rewrite the CPU PM configuration for MSM8939.
+
+[33mcommit 0f6402b9288ac2e6df9d08e56ab202705b073a3e[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 17:41:25 2016 +0200
+
+    arm: DT: MSM8936: Migrate to virtual CPU clocks for multiuser
+    
+    Multiple users can do a request to the CPU (and cci) clocks.
+    Migrate to a virtual clock that is managed by the driver
+    to avoid race conditions.
+    The driver will execute on the real clock.
+
+[33mcommit 9c57b443717f2c9d3931c3320f70a69a449298b0[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 16:36:10 2016 +0200
+
+    arm: DT: MSM8936/MSM8939: Add spc-as-pc quirk for SPM
+    
+    MSM8936/8939 want standalone power collapse sent as regular
+    power collapse, otherwise unrecoverable HW fault happens.
+
+[33mcommit 1fff699bf621869241379085caed80bc8f34f0c8[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 17:40:45 2016 +0200
+
+    arm: DT: MSM8936/39: Migrate to new SPM
+    
+    MERGEME!!!!
+
+[33mcommit 9456f7abbea7dea24493b8cabc2a7b615f434671[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 17:04:26 2016 +0200
+
+    clk: msm: clock-cpu-8936: Kill hw_low_power_ctrl
+    
+    MSM8936 does not support hw_low_power_ctrl.
+
+[33mcommit 73d8b944649bbdf11764dd147ede83522a1481e8[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 11:25:49 2016 +0200
+
+    arm: DT: msm8939-common: Add GCC SPM node for SPM clocks management
+    
+    New clock management: introduce SPM clocks.
+
+[33mcommit 8fd289ca91744e11d1864185a6d9df6ebc8b7557[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 16:59:42 2016 +0200
+
+    arm: DT: MSM8939: Fix GPU idle timeout and add busmon for kgsl
+    
+    GPU idle timeout is not specified in milliseconds: change it
+    accordingly.
+    Moreover, add KGSL bus monitor node and add a reference label
+    to the gfx3d_user kgsl smmu context bank.
+
+[33mcommit 31853d9bddaaf0c5d9fb22e4c993996acd487efe[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Wed Jun 22 16:54:03 2016 +0200
+
+    arm: DT: MSM8939-mdss: Add rotator, switch clocks for MDP, gen fixes
+    
+    Add mdss_rotator configuration for the new implementation,
+    switch MDP clocks to use the new voter clocks for rotator
+    to be independent.
+    
+    Also, introduce msm-bus settings for mdss_dsi, fix property name
+    in mdp (dst-split==>pingpong-split) and add maximum pipe width
+    configuration.
+
+[33mcommit 9151fd8a173febe2f7455205d4bfa02a91f1a5bb[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 18:21:23 2016 +0200
+
+    arm: DT: MSM8939-cpu: Use ACC, implement sleep status
+    
+    PSCI is not working on MSM8939, unless we use a PSCI-compatible
+    firmware.
+    Sony devices have got a non PSCI-compatible firmware.
+
+[33mcommit fcf21aebd91e807947e3440e7da11c5eee50fb59[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 18:10:13 2016 +0200
+
+    arm: DT: msm8939-common: Add mitigation_profile 4 for cluster 1
+    
+    8939 has two clusters. Big cluster needs a mitigation profile
+    taking informations from tsens_tz_sensor9.
+
+[33mcommit ed7f3cf39ae547608fa7266ef692312aaba6239c[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:30:35 2017 +0100
+
+    regulator: fan53555: Port MSM8936/9 specific FAN53555 driver
+    
+    This is specific to MSM8936, MSM8939. Has more commands and it
+    is fixed for correct suspend and resume and correct latencies
+    for the regulator in this SoC.
+
+[33mcommit fc91f1dbb347252fa7a21e8882eb9815ce72f7b8[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:57:35 2016 +0200
+
+    arm: DT: MSM8939-mtp: Refactor pinctrl configuration
+    
+    We have migrated to mainline pinctrl driver.
+    Refactor the configuration accordingly.
+    
+    Signed-off-by: Angelo G. Del Regno <kholk11@gmail.com>
+
+[33mcommit e8128463c8e1c3cb8a7da448730bc3d8bb56a968[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:56:05 2016 +0200
+
+    arm: DT: MSM8939-mdss: Disable MDSS1 intf by default
+    
+    MSM8916 MSM8936 MSM8939 devices usually have only one
+    MDSS interface connected to a display.
+    Disable the other interface to get faster mdss probing,
+    hence fast boot times, and less errors at boot time.
+
+[33mcommit b219dfa3f12d651acc645016ce84296963852941[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:55:23 2016 +0200
+
+    arm: DT: MSM8939-gpu: Fix and add required nodes for new kgsl iommu
+    
+    New KGSL IOMMU requires new DT nodes.
+    Configure it correctly.
+
+[33mcommit dd8344389c3ff2e56b9de76095a25aa069ef7f66[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:53:16 2016 +0200
+
+    arm: DT: Tulip: Add new battery params, rewrite pinctrl
+    
+    We have migrated to mainline linux's pinctrl framework
+    and drivers: Rewrite the pinctrl accordingly.
+    
+    Moreover, add vbatweak-uv (new parameter) for pm8916_charger
+    and the maximum nominal system clock rate specification
+    for the usb_otg node (mandatory!).
+    
+    Signed-off-by: Angelo G. Del Regno <kholk11@gmail.com>
+
+[33mcommit 2b27585b4acdc39281901db36b5579227f32e163[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:51:07 2016 +0200
+
+    arm: DT: msm8939-common: Add tempsensor infos and fix nodes
+    
+    Add temperature sensor informations, fix various nodes by
+    declaring the correct address and size cells, declaring
+    reg-names and other missing -required- properties.
+    
+    Fix the core and frequency control for msm-thermal: now
+    we use a list of nodes (to inherit them) and not a mask
+    anymore.
+    
+    Signed-off-by: Angelo G. Del Regno <kholk11@gmail.com>
+
+[33mcommit 1c03547e2f1a8b16e730150585532105f7a2563b[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:48:44 2016 +0200
+
+    arm: DT: msm8936: Fix cpu-clock node, add msm-thermal parms
+    
+    msm-thermal requires a different configuration for MSM8936,
+    since there is no little cluster.
+
+[33mcommit 252595a5ea544a30e046ad3e951f6d0b5bd51400[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:46:25 2016 +0200
+
+    arm: DT: MSM8936-pm: Rewrite the SAW2 SPM commands nodes
+    
+    Kernel 3.18 drivers require new format to specify the SPM
+    modes.
+
+[33mcommit 7c3d5df77c784542c840d043c3050830fb720ba6[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:45:29 2016 +0200
+
+    arm: DT: MSM8936-cpu: Add cpu-map and mitigation profiles
+    
+    Kernel 3.18 requires a cpu map, specifying cluster and cores.
+    While at it, add mitigation profiles to the CPU nodes.
+
+[33mcommit 22cb97552d1f3c848cd08bf33be1a11db0655165[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:40:33 2016 +0200
+
+    clk: msm: Add clock-cpu-8936 driver for MSM8936 MSM8939
+    
+    This driver has been removed in 3.18, but we need it for
+    our devices containing those chips.
+    
+    Unfortunately, the 3.10 snapshot driver wasn't good for 3.18
+    so, this driver has been partially rewritten, mostly for
+    generic OPP framework support.
+
+[33mcommit b226438c68c8c4b551568b1b216a40a5a3f79403[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:38:31 2016 +0200
+
+    arm: DT: PM8916: Explicitly disable all GPIOs, all MPPs.
+    
+    Disable those explicitly: only the strictly required ones
+    will have to be enabled, and this will be done in
+    board-specific DT.
+
+[33mcommit d637ae0fb9e323170763ae1a8b6fc132d36dc877[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 14:36:28 2016 +0200
+
+    arm: DT: MSM8939: Complete rewrite of pinctrl for mainline
+    
+    Rewrite the pinctrl DT for MSM8939. This DT is valid
+    for mainline linux (currently 4.6).
+
+[33mcommit 56a77682fe3b88791dd47d8f1d34e3dec15c0230[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Sun Jun 19 10:56:01 2016 +0200
+
+    arm: DT: MSM8939: Fix pronto VDDMX supply
+    
+    VDDMX supply shall be a corner regulator on 8939.
+    Change it to l3_corner_ao.
+
+[33mcommit 548d443cdb79e5d60bdeaaa5d580e1f6fcdd3e70[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:17:37 2017 +0100
+
+    arm: DT: msm8939-common: Refactor memory configuration
+    
+    The 3.18 kernel has new memory configuration DT.
+    Refactor MSM8939 to adhere.
+
+[33mcommit f65b246efd5e4731583c2b01dde315ad5df3b043[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:15:02 2017 +0100
+
+    arm: DT: msm8939-common: Restructure audio nodes, add auxpcm device
+    
+    The new audio drivers wants it.
+
+[33mcommit 9cfe4a06dacce7e9751545c0b7baff75f03a18d2[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:13:01 2017 +0100
+
+    arm: DT: msm8939-common: Specify maximum peripherals and intr for PMIC
+    
+    The PMIC arbitrator now needs us to specify the maximum allowed
+    peripherals and max peripheral interrupts.
+
+[33mcommit 8ae37fc9645bf68311721efa71519fbf3349d79c[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:11:02 2017 +0100
+
+    arm: DT: msm8939: Add SPS-DMA driver and refactor i2c/spi to use it
+    
+    We have a new sps-dma driver. Now we can use it in i2c and spi
+    driver.
+
+[33mcommit 3248aebc22c6531fa0e762e1af6fe2395d325650[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:09:23 2017 +0100
+
+    arm: DT: msm8939-common: Move usbbam to be a subnode of usb_otg
+    
+    In kernel 3.18, new drivers are probing it through the hsusb-otg
+    driver.
+
+[33mcommit a9f9a2114e7adee248f70c2688fa84e6d3fc4084[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:08:07 2017 +0100
+
+    arm: DT: msm8939: Add sensor information and mitigation profiles
+    
+    Sensor information for internal sensors and mitigation profiles
+    for the CPUs were missing.
+
+[33mcommit 2a7aecab43bf0b37f07a430bc3fc94201d10bb74[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:05:06 2017 +0100
+
+    arm: DT: msm8939-camera: Assign both pinctrl handles to CCI
+    
+    Now CCI wants both.
+
+[33mcommit b4c057fcf9974c0d30b0d085a1bf5e3133e2de2b[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:04:07 2017 +0100
+
+    arm: DT: msm8939-ion: Migrate the ION nodes to new DT memory spec
+    
+    On kernel 3.18, we assign the memory region differently.
+    The new property is "memory-region".
+
+[33mcommit 8579d839bbc2ba9cf25818f0f6f33b29a54bef4c[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:02:50 2017 +0100
+
+    arm: DT: msm8939-ipcrouter: Specify default peripheral for ipc_router
+    
+    The default peripheral for node 1 is modem.
+
+[33mcommit a7c0f71d69e89cd76f24ef20f356cc7b99a592a5[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 17:01:22 2017 +0100
+
+    arm: DT: msm8939: Implement mainline-style pinctrl for MSM8939
+    
+    We have mainline-style pinctrl in kernel 3.18.
+    Implement for MSM8939.
+
+[33mcommit cd9bf1b78c44946d90e29176a5d45743af7f7e7b[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Mar 6 16:55:18 2017 +0100
+
+    arm: DT: msm-pm8916: Specify address, size, intr cells and controller
+    
+    On 3.18, it is NECESSARY to specify the number of cells.
+    Also, declare interrupt-controller on SPMI bus.
+
+[33mcommit 8b9c599ff34d75c1de9f8072785800726cde943d[m
+Author: Erik Castricum <erikcas1972@gmail.com>
+Date:   Tue Jan 19 13:03:23 2016 +0100
+
+    tulip: fix smb1360-charger-fg compile
+    
+    Change-Id: If0ae11986102c08fb5fa06fcfb7a36a21d5703a4
+    Signed-off-by: Erik Castricum <erikcas1972@gmail.com>
+
+[33mcommit 582f379434281c5a93814d663c57b9fa030a5dab[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Jun 15 19:20:57 2015 +0200
+
+    arm64: qcom: Add SONY Kanuti platform, msm8939 family
+    
+    This is an initial brungup for Kanuti platform.
+    
+    It contains various SOMC boards support, including:
+    * Xperia M4 Aqua - Tulip
+    
+    includes
+    0ea2740554707f734fb0dac9b4f72d9209b6c2b8 Mon Sep 17 00:00:00 2001
+    From: "Angelo G. Del Regno" <kholk11@gmail.com>
+    Date: Mon, 21 Mar 2016 21:14:33 +0100
+    Subject: [PATCH 284/304] arm: DT: Seagull/Tulip: Add machine marker for FIHboards
+    
+    FIH boards have lots in common. Add a property to identify
+    whether the board is made by FIH.
+    
+    ----- COMMITLOG FORMAT CHANGE -----
+    commit 417e46bdb6452ab8e691cdd5ccd855641454cdc0
+    Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+    Date:   Tue, 22 Sep 2015 14:05:58 +0200
+    
+        kanuti: disable mtp camera
+    
+        mtp camera has to be disabled
+    
+    commit 8a3165c3678eb635bf783fd7e798deec862b9c83
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Tue Jul 28 19:04:28 2015 +0200
+    
+        arm: DT: Tulip: Fix LP5562 node prop names and change LED names
+    
+    commit e4802f45c9d04771b5149fcf218d488b9493682b
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Tue Jul 28 10:31:14 2015 +0200
+    
+        arm64: configs: Tulip: Update defconfig and fix build
+    
+    commit adf7c82b1ebc40119edfff891e18a8fba6e3c07e
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Tue Jul 28 09:46:35 2015 +0200
+    
+        arm: DT: Kanuti/Tulip: Fix build (various cleanups)
+    
+    commit 9b7391ab6c94145a05c3c677e77593bc8d0d2357
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Tue Jul 28 09:30:00 2015 +0200
+    
+        arm: DT: Tulip: Add camera DT, include in common dtsi
+    
+    commit 532b1a9ede4ea7d693f0f9e1949ed981ab17e34e
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Thu Jul 30 15:57:12 2015 +0200
+    
+        arm64: configs: Tulip: Fix LP5562 leds config
+    
+    commit fc5d9c15080734bccfce4a99e6994a78651f6992
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Wed Jul 29 18:21:07 2015 +0200
+    
+        arm: DT: Karin: Enable probing i2c@f9967000
+    
+    commit 5f4df8c394ea272c295fd6c602c72d5d4eba91f7
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Tue Jul 28 09:27:23 2015 +0200
+    
+        arm: DT: msm8939-mtp: Remove inclusion of MTP camera
+            sensor DT
+    
+    commit 6b9bd627962058f6936477de3f4fe2dabb824a2f
+    Author: Angelo G. Del Regno <kholk11@gmail.com>
+    Date:   Thu Jul 30 10:32:47 2015 +0200
+    
+        arm: DT: dsi-panel-fih_common: Add missing props to new panels
+
+[33mcommit 6db53c98bc386d6f316c9d63c33963c45fb819c6[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Jun 6 14:00:09 2016 +0200
+
+    arm: DT: qcom: Add MSM8916, MSM8936, MSM8939 support DTs
+    
+    Support for those SoCs was not included in this kernel release.
+    Add base DTs for MSM8916, MSM8936, MSM8939 SoCs.
+
+[33mcommit c58c1091a740984715f344034b6a85df7624cb96[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Sep 26 12:23:07 2016 +0200
+
+    arm: DT: msm8939: Add QoS IRQ and frequency table for SDHC nodes
+    
+    This is required in 3.18, and anyway, allows for correct clock
+    scaling on the SDHCI controller.
+
+[33mcommit 0a10bda23212ac3222104618de70a846146bb8df[m
+Merge: cf7732945ac1 7d0f17ac6f49
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Sun Mar 5 20:46:30 2017 +0100
+
+    Merge pull request #1202 from Diewi/bluesleep-5.5
+    
+    [5.5] Fix UART clk turning on after resume.
+
+[33mcommit 7d0f17ac6f498e2e724701d7b6499b67225bd1fc[m
+Author: Alexander Diewald <Diewi@diewald-net.com>
+Date:   Sun Mar 5 17:32:56 2017 +0100
+
+    Fix UART clk turning on after resume.
+    
+    In I50eb35b6af93f6bebb2122b3f80061f04b120998, the UART clock turn on
+    code in the resume function was modified to use the hsuart_power
+    function to avoid code duplication. The latter method checks the
+    BT_SUSPEND flag and does nothing if it is not set. Due to the fact that
+    the flag is cleared only after the invocation of hsuart_power, the clock
+    is not turned on as it was previously. Hence, move the code to clear the
+    flag before the invocation of the hsuart_power function to restore the
+    orignal behavior.
+    
+    Change-Id: Icaf781433bd3641c52a2a2f98007ea9ba721ba38
+    Signed-off-by: Alexander Diewald <Diewi@diewald-net.com>
+
+[33mcommit cf7732945ac100cd3d8502c54736f776a064a58b[m
+Merge: 4b987d9ddba2 da1485be33c0
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Thu Mar 2 12:39:14 2017 +0100
+
+    Merge pull request #1189 from SonyAosp/5.5-FM
+    
+    5.5 fm
+
+[33mcommit da1485be33c01d13e6fb28355dae35471c717c31[m
+Author: Alexander Diewald <Diewi@diewald-net.com>
+Date:   Tue Feb 7 23:29:09 2017 +0100
+
+    Make the brcm ldisc driver compatible with libbt (use it for BT)
+    
+    Kernel changes that allow to use the broadcom ldisc driver for combined
+    BT and FMRadio chips for BT using libbt. The major modification is the
+    interception of the hci configuration commands emitted by libbt and
+    their simulated answer to the upper layers. The configuration is done
+    already by the driver, while a reconfiguration would break the
+    functionality of the ldisc driver.
+    This modification requires that libbt is configured to communicate via
+    the ldisc's device node ("/dev/brcm_bt_drv"), while uim is wired to the
+    "real" uart port.
+    
+    This change includes the following additional and required changes:
+    * "ifdef" the bluesleep start/stop hooks in the rfkill driver since it
+    is handled in the ldisc driver.
+    * Only reset the outgoing data timer (bluesleep) if the brcm driver is
+    not used. Also handled in the ldisc driver.
+    * msm_serial_hs: reset the client counter to 0 only if the ldisc driver
+    is not used since it is invoked twice when starting the ldisc, resulting
+    in a mismatching counter.
+    
+    Required userspace modifications:
+    * "#define HCILP_INCLUDED false" in bdroid_buildcfg.h
+    * "UartPort = /dev/brcm_bt_dev" in bt_vendor.conf
+    * "UimUartPort = /dev/ttyHS0" in bt_vendor.conf (for msm_serial_hs)
+    
+    Change-Id: Ib1a551b47280d3881f71d12b0dcfd274ff7efc4b
+    Signed-off-by: Alexander Diewald <Diewi@diewald-net.com>
+
+[33mcommit 4496dca6ddb745d67eb2b0f12e66923ebc36bb3e[m
+Author: Alexander Diewald <Diewi@diewald-net.com>
+Date:   Thu Feb 2 21:53:51 2017 +0100
+
+    drivers: bluesleep: Fix wrong context in module start routine.
+    
+    Call spin unlock earlier such that we are in the correct context when
+    the atomic operations are done or the UART power is turned on. Otherwise
+    a BUG is triggered.
+    
+    Change-Id: I1a334d0102e0a9c539bfd5ed63c7308da99b8a25
+    Signed-off-by: Alexander Diewald <Diewi@diewald-net.com>
+
+[33mcommit 4b987d9ddba251c0c70d4aeaf621ca943dc32fc0[m
+Merge: 677987e3648b 7bc508d71337
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Mon Feb 27 21:56:55 2017 +0100
+
+    Merge pull request #1188 from SonyAosp/5.5-dt-typo
+    
+    arm64: MSM8956: DT: fix msm-ssc-sensors typo
+
+[33mcommit 7bc508d713372edb1f62e8767636e2ec53d75f22[m
+Author: David <Davidteri91@gmail.com>
+Date:   Mon Feb 27 21:35:25 2017 +0100
+
+    arm64: MSM8956: DT: fix msm-ssc-sensors typo
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit 677987e3648ba4b49e751d5f03b03bbf0cea6b11[m
+Merge: 56f27edf09eb 8421b125e722
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Mon Feb 27 18:42:24 2017 +0100
+
+    Merge pull request #1186 from kholk/aosp/LA.UM.5.5.r1__TUNING
+    
+    [5.5 R1] leds: as3668: Write to brightness register when setting blink
+
+[33mcommit 8421b125e7225ad360ad6315043d04078df1d917[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Mon Feb 27 18:38:08 2017 +0100
+
+    leds: as3668: Write to brightness register when setting blink
+    
+    I have erroneously supposed that the as3668_switch_led and its
+    register writes was also writing to the brightness registers.
+    Turned out to be wrong.
+    
+    Set the brightness register manually to fix issues.
+
+[33mcommit 56f27edf09ebe3dfe2d82282dddf7da44ea30ae1[m
+Merge: a64689a4f424 ce3de2b91b60
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Sat Feb 25 15:09:03 2017 +0100
+
+    Merge pull request #1181 from SonyAosp/7.1-vdic-8939
+    
+    media: msm: venus_hfi: Do not enable packetization in fw load for 8939
+
+[33mcommit ce3de2b91b609bbd3c5a27b4092000b55b87a4d8[m
+Author: David <Davidteri91@gmail.com>
+Date:   Sat Feb 25 14:45:02 2017 +0100
+
+    media: msm: venus_hfi: Do not enable packetization in fw load for 8939
+    
+    tulip will need this too
+    Following 030b26985660e99e0ca144b8b186c3fbef5539cc
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit a64689a4f424f7240fca25b330abef2fb65e6855[m
+Merge: eda50b151507 57f0449b1526
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Fri Feb 24 10:25:05 2017 +0100
+
+    Merge pull request #1179 from SonyAosp/7.1-voice
+    
+    arm64: MSM8956: DT: remove VMBMS feature
+
+[33mcommit eda50b15150772d4ef405f28d36c68e4b74fe627[m
+Merge: f9ceab6e545d 9e61e78046d1
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Fri Feb 24 10:19:43 2017 +0100
+
+    Merge pull request #1173 from SonyAosp/7.1-cam
+    
+    ARM: dts: msm: Add bus vectors in cpp node
+
+[33mcommit f9ceab6e545db4784a5e626f707b694d570bbb98[m
+Merge: 4e45aa3e137f ee54951cf7c3
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Fri Feb 24 10:19:25 2017 +0100
+
+    Merge pull request #1178 from SonyAosp/7.1-usbbam
+    
+    [UM.5.5] usb_bam updates
+
+[33mcommit 57f0449b1526b5a87cabe6e9c6f09f7142356b6d[m
+Author: David <Davidteri91@gmail.com>
+Date:   Fri Feb 24 10:10:42 2017 +0100
+
+    arm64: MSM8956: DT: remove VMBMS feature
+    
+    Following 475b8cdd22ea0dde19202e983a6c6a438b9891b4
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit ee54951cf7c32af956600df580c599dbeb78a1ee[m
+Author: David <Davidteri91@gmail.com>
+Date:   Fri Feb 24 09:57:21 2017 +0100
+
+    arm64: MSM8956: DT: Don't set reset-bam-on-disconnect
+    
+    Following 3b66e69bf0e25940681e126f49a883c52bc019c8
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit b4080bd2d19347ab958a2a5abe9dca902b223eff[m
+Author: David <Davidteri91@gmail.com>
+Date:   Fri Feb 24 09:56:05 2017 +0100
+
+    arm64: MSM8956: DT: usb_bam: restructure and cleanup code to handle multi instances
+    
+    Following 4c6aa4e08e0223d236ff18eb4936c3b42b031059
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit 8606509efc3f1a9abe4a2272514c309580aa567f[m
+Author: David <Davidteri91@gmail.com>
+Date:   Fri Feb 24 09:51:17 2017 +0100
+
+    arm64: MSM8956: DT: Remove support for USB3 internal memory as BAM FIFOs
+    
+    Following eaa23eb8958cc5e6f08f0292e6b8f90fe8a18d57
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit 4e45aa3e137fca899007ba73a2b50af90b1ba4d3[m
+Merge: 1b891a949d17 438242b88dd5
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Fri Feb 24 09:44:05 2017 +0100
+
+    Merge pull request #1174 from SonyAosp/7.1-tone-sensor
+    
+    arm64: DT: MSM8996: Rename thermal sensor-information child nodes
+
+[33mcommit 1b891a949d17392ec1769aae7c274908e1ddd777[m
+Merge: 92e8e12471bb 6faaec6df1ed
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Fri Feb 24 08:55:30 2017 +0100
+
+    Merge pull request #1177 from SonyAosp/7.1-avtimer
+    
+    arm64: MSM8956: DT: fix avtimer clock prop name
+
+[33mcommit 6faaec6df1eda3a385a8786087cbac3d328d8b5d[m
+Author: David <Davidteri91@gmail.com>
+Date:   Fri Feb 24 08:42:23 2017 +0100
+
+    arm64: MSM8956: DT: fix avtimer clock prop name
+    
+    changed in commit 030de8d429f64c30b5a5fc6557a8c0609bad3a74
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit 9e61e78046d19502b4862daff3548aa306eb676c[m
+Author: Krupal Divvela <kdivvela@codeaurora.org>
+Date:   Fri Aug 19 19:52:54 2016 +0530
+
+    ARM: dts: msm: Add bus vectors in cpp node
+    
+    Add bus vector in cpp node for independent
+    AB/IB voting. Previously this was being done
+    via isp.
+    
+    Change-Id: I3804a72d705295645ef5321d995a8dcab6e395a9
+    Signed-off-by: Krupal Divvela <kdivvela@codeaurora.org>
+    Signed-off-by: Neelam Abhinav Karthik <aneelam@codeaurora.org>
+
+[33mcommit 438242b88dd59ace14c0392185a71ba93bccee85[m
+Author: David <Davidteri91@gmail.com>
+Date:   Wed Feb 22 16:04:58 2017 +0100
+
+    arm64: DT: MSM8996: Rename thermal sensor-information child nodes
+    
+    Following 2d62a489a6cf0cea206060ee788562d1022599a0
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit 92e8e12471bbce3808a5a7d87ff7bf4e3c24c4ce[m
+Merge: acfc8af9e28d 06b4466c3f87
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Tue Feb 21 17:32:07 2017 +0100
+
+    Merge pull request #1171 from kholk/aosp/LA.UM.5.5.r1__TUNING
+    
+    [5.5.r1] Discotheque feature on Loire and Tone
+
+[33mcommit 06b4466c3f8779f7c18c3b02a23060806242da09[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Tue Feb 21 17:25:54 2017 +0100
+
+    leds: as3668: Add simple blink function and sysfs
+    
+    The unified lights library in Open Devices wants a sysfs file
+    named "blink". This is common between all the devices in the
+    project and this is the only led driver that uses a different
+    way to start blinking.
+    
+    Adapt the driver to use the blink sysfs.
+
+[33mcommit c05e8caefe8bc78a548bac5a02260aff7910dfec[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Tue Feb 21 16:21:57 2017 +0100
+
+    arm: DT: Tone: Enable WLED blink on RGB LEDs for Dora and Kagura
+    
+    Our lights HAL wants to use the default kernel implementation
+    for LED blinking, instead of one of its own.
+    Enable WLED blink in DT.
+
+[33mcommit acfc8af9e28d13d3aa996bbf0e81cf30d4580e1d[m
+Merge: 6cb48bf30eab fe62852575df
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Tue Feb 21 14:42:53 2017 +0100
+
+    Merge pull request #1170 from kholk/aosp/LA.UM.5.5.r1__TUNING
+    
+    arm64: configs: Tone: Set CONFIG_NR_CPUS to 4 on Dora and Kagura
+
+[33mcommit fe62852575dfc14b54b23f5b0cae10beab117e66[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Tue Feb 21 14:29:13 2017 +0100
+
+    arm64: configs: Tone: Set CONFIG_NR_CPUS to 4 on Dora and Kagura
+    
+    Tone platform has MSM8996, a quadcore HMP SoC.
+    By not specifying CONFIG_NR_CPUS, this is automatically set to 8,
+    which is completely wrong for this SoC.
+    
+    We have almost no drivers relying on this configuration option:
+    since we have DT this is seen as maximum number of CPUs to probe
+    but, since we know the number for sure, we can lower memory
+    consumption and (maybe) startup times because some arrays in
+    kernel drivers are dimensioned using this configuration option.
+
+[33mcommit 6cb48bf30eab30e91014c24358f6d471468126fd[m
+Author: Hon Weng Chong <honwchong@gmail.com>
+Date:   Mon Feb 20 23:25:10 2017 +1100
+
+    dts: dsi: kagura: fixes unresponsive TS after wakeup
+
+[33mcommit 43b01701d3b530becd27bb25d6eda015648e8d77[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Mon Feb 20 13:47:13 2017 +0100
+
+    dts: dsi: suzu: add regulator configuation
+    
+    in the initial commit regulator configuration was missing and this
+    could lead to power issues
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit 1e72a65ba675609c93eb463dfef7a8da51672539[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Mon Feb 20 13:57:39 2017 +0100
+
+    dts: dsi: tone: update somc synaptics panel config
+    
+    update the driver-ic configuration to match the driver
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit cde162ebec49d65f19f74a83de95a61deff65013[m
+Merge: b4bf95416b8e 126111b2ffea
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Wed Feb 15 10:34:08 2017 +0100
+
+    Merge pull request #1164 from SonyAosp/android-7.1-cam
+    
+    Android 7.1 cam
+
+[33mcommit 126111b2ffea80bc782aaa9c97435e6f68fec047[m
+Author: Krupal Divvela <kdivvela@codeaurora.org>
+Date:   Tue Jul 26 12:17:17 2016 +0530
+
+    ARM: dts: msm: Update JPEG QoS settings
+    
+    Update JPEG hardware QoS settings as
+    per systems team recommendation.
+    
+    CRs-Fixed: 1043261
+    
+    Change-Id: I4180325e9b13ba5d6dc78f72c8bc4e63befccd3e
+    Signed-off-by: Krupal Divvela <kdivvela@codeaurora.org>
+
+[33mcommit 73fc76bd15eec6ec879d959919b926876c7551fe[m
+Author: David <Davidteri91@gmail.com>
+Date:   Wed Feb 15 10:17:54 2017 +0100
+
+    arm: DT: msm8976-camera: Specify a name for the cpp gdsc supply
+    
+    Following commit a6c7405a15090ea5dd7fd7aea8f886212011989c
+    
+    Signed-off-by: David Viteri <davidteri91@gmail.com>
+
+[33mcommit 0ac378b27af0df82c7f57b25d7ba0efe27a2ff77[m
+Author: Krupal Divvela <kdivvela@codeaurora.org>
+Date:   Mon Jul 4 11:28:54 2016 +0530
+
+    ARM: dts: msm: Fix JPEG dts entries to 3.18 camera
+    
+    Update JPEG dt entries to 3.18 camera for JPEG.
+    
+    CRs-Fixed: 1037301
+    
+    Change-Id: I04ea3427f616f0db79d7f7e0e7120a7145483a23
+    Signed-off-by: Krupal Divvela <kdivvela@codeaurora.org>
+
+[33mcommit ae5068a2156ea1f0c1710b46198c5f3e023bd22c[m
+Author: Krupal Divvela <kdivvela@codeaurora.org>
+Date:   Thu Dec 29 18:00:04 2016 +0530
+
+    ARM: dts: msm: Fix JPEG dts entries to 3.18 camera
+    
+    Update JPEG dt entries to 3.18 camera for JPEG.
+    
+    CRs-Fixed: 1105801
+    Signed-off-by: Krupal Divvela <kdivvela@codeaurora.org>
+    Change-Id: I9b836c8202db0bb45ca6756b98358cbee26f53cb
+
+[33mcommit 10506f2e241b85e94941171bcbf956a4b1de70f3[m
+Author: Trishansh Bhardwaj <tbhardwa@codeaurora.org>
+Date:   Tue Sep 27 18:05:05 2016 +0530
+
+    defconfig: arm: msm8976: enable ISPIF V2 support
+    
+    Enable ISPIF V2 support for camera
+    CRs-Fixed: 1064565
+    
+    Change-Id: I5fccba9116599bda8d3c309d228cc8cc64329661
+    Signed-off-by: Trishansh Bhardwaj <tbhardwa@codeaurora.org>
+
+[33mcommit b4bf95416b8e1ca989601deee316eff6f631aaf4[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Tue Feb 14 10:47:52 2017 +0100
+
+    dts: tone: camera cleanup
+    
+    move the cci configs to camera
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit b865f847fb8e4ab6f33fafb3ef4ba39bbf8d65c0[m
+Merge: d6afde777a01 8aa0c40410af
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Fri Feb 10 18:32:46 2017 +0100
+
+    Merge pull request #1161 from kholk/55r1_loire_pinctrl
+    
+    [UM.5.5.r1 LOIRE] Pinctrl, BAM and new msm-bus subnode
+
+[33mcommit 8aa0c40410affceaa130ac81cf16514668041d19[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 10 17:23:54 2017 +0100
+
+    arm: DT: loire: Add msm-bus informations for bcmdhd
+    
+    The new 3.18 kernel LOVES msm-bus nodes everywhere.
+
+[33mcommit 8c73a984cc96b306b4821c51cf66dc4d2f52c2fe[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 10 17:15:50 2017 +0100
+
+    arm: DT: MSM8976-pinctrl: Correct declaration of SDC3 pins
+    
+    The SDC3 pins are not in QDSD. Use the newly created function
+    and assign the correct GPIOs to the pinctrl nodes.
+
+[33mcommit a8115a34b30f4b75b20ee4c055508b4ddaa6d77e[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 10 17:13:27 2017 +0100
+
+    pinctrl: msm8976: Fix QDSD and SDC3 pin declarations
+    
+    The QDSD pins were WRONG!!!! That's all because the SDC3 pins
+    were also ... wrong.
+    
+    SDC3 is on "normal" GPIO array, so not the "extra" ones.
+    Remove the sdc3 declaration from QDSD pingroup, move it to
+    standard pingroup and assign the right GPIOs.
+    Also shift down the QDSD pins in order to finally get them
+    (hopefully) right.
+
+[33mcommit 7316938aad901bdcb795e3fa061b30eb95f71998[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 10 15:21:03 2017 +0100
+
+    arm: DT: MSM8956/76: Move bam-type property to main usbbam node
+    
+    The new driver in 3.18 wants it there. Anyway, the bam-type
+    property was always the same in all the BAM pipe subnodes,
+    so this was a good choice.
+
+[33mcommit d6afde777a011898c82a82306e27336dabe90adf[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 3 15:53:21 2017 +0100
+
+    arm: DT: msm8976-camera: Add bus frequencies for msm-camera node
+    
+    Those settings will allow CPP to initialize and scale as it
+    should when using the camera hardware.
+
+[33mcommit 284200a0969d08993bd24e4e5497ef7ab89befea[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 3 15:55:25 2017 +0100
+
+    arm: DT: msm8976-iommu: Specify iommu-cells property for apps_iommu
+    
+    The apps iommu partition has one iommu cell and multiple contexts.
+    Specify the cells number for the kernel to stop guessing it.
+
+[33mcommit 8a31a22d4af2b5d392affc9dd6e8cf4619e78d5d[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 3 16:14:40 2017 +0100
+
+    arm: DT: msm8976-camera: Implement msm-bus scaling for jpeg
+    
+    The msm-bus scaling feature is now mandatory on 3.18.
+
+[33mcommit a6c7405a15090ea5dd7fd7aea8f886212011989c[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 3 16:09:03 2017 +0100
+
+    arm: DT: msm8976-camera: Specify a name for the jpeg gdsc supply
+    
+    The new QC SoC Camera API needs a property that is specifying
+    the name for the actual regulator supply.
+
+[33mcommit 2176966d09fb6fc941dbc48f1bbdc97e623bb968[m
+Author: Angelo G. Del Regno <kholk11@gmail.com>
+Date:   Fri Feb 3 16:00:12 2017 +0100
+
+    arm: DT: msm8976-camera: Add correct reg-names for jpeg hw node
+    
+    The register names were incorrectly defined: on the old kernel
+    (3.10) we were using only the jpeg hw register, but now on 3.18
+    we need to support also the jpeg_vbif register space.
+
+[33mcommit 2e924c39e3fddc83b159df16d17cc46721b5814d[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Wed Feb 8 10:53:01 2017 +0100
+
+    dts: msm8965: dai_sec_auxpcm typo fix
+    
+    fix the configuration typo and select the proper device
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit a4c456a1a1d553ad56cc8c6a02f9f0df16d3a2ab[m
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Wed Feb 8 10:27:07 2017 +0100
+
+    dts: loire: fix micbias typo
+    
+    during porting the micbias was set in the wrong place
+    resulting incorect voltage and sample rate selection
+    
+    Signed-off-by: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+
+[33mcommit 70d70285d93c36608b2e0d6d3381513bdce96157[m
+Merge: 11b10a1afe4c 09dcb8728987
+Author: Alin Jerpelea <alin.jerpelea@sonymobile.com>
+Date:   Sun Feb 5 08:50:55 2017 +0100
+
+    Merge pull request #1158 from pablomh/3.18-Security-20170203
+    
+    [LA.UM.5.5.r1] CAF Security Advisories - February 3, 2017
