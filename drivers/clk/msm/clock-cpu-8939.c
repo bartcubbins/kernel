@@ -799,7 +799,7 @@ static int clock_a53_probe(struct platform_device *pdev)
 		clk_set_rate(&cci_clk.c, rate);
 	}
 
-	for (mux_id = 0; mux_id < mux_num; mux_id++) {
+	for (mux_id = 0; mux_id < A53SS_MUX_CCI; mux_id++) {
 		/* Force a PLL reconfiguration */
 		config_pll(mux_id);
 	}

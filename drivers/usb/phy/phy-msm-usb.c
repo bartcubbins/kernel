@@ -4552,7 +4552,7 @@ static int msm_otg_probe(struct platform_device *pdev)
 	if (pdata->enable_sec_phy)
 		phy->flags |= ENABLE_SECONDARY_PHY;
 
-	ret = usb_add_phy(&motg->phy, USB_PHY_TYPE_USB2);
+	
 	if (ret) {
 		dev_err(&pdev->dev, "usb_add_phy failed\n");
 		goto free_async_irq;
@@ -4722,7 +4722,7 @@ remove_cdev:
 	if (psy)
 		power_supply_unregister(psy);
 remove_phy:
-	usb_remove_phy(&motg->phy);
+	
 free_async_irq:
 	free_irq(motg->async_irq, motg);
 free_phy_irq:
@@ -4822,7 +4822,7 @@ static int msm_otg_remove(struct platform_device *pdev)
 	if (motg->phy_irq)
 		free_irq(motg->phy_irq, motg);
 
-	usb_remove_phy(phy);
+	
 	free_irq(motg->irq, motg);
 
 	if (motg->pdata->mpm_dpshv_int || motg->pdata->mpm_dmshv_int)
