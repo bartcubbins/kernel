@@ -2343,11 +2343,16 @@ static void smb1360_external_power_changed(struct power_supply *psy)
 	rc = 0;
 	if (chip->usb_present && !chip->charging_disabled_status
 					&& chip->usb_psy_ma != 0) {
-		if (prop.intval == 0)
-			rc = power_supply_set_online(chip->usb_psy, true);
+		if (prop.intval == 0) {
+			prop.intval = 1;
+			rc = power_supply_set_property(chip->usb_psy,
+					POWER_SUPPLY_PROP_ONLINE, &prop);
+		}
 	} else {
-		if (prop.intval == 1 && !chip->usb_present)
-			rc = power_supply_set_online(chip->usb_psy, false);
+		if (prop.intval == 1 && !chip->usb_present) {
+			prop.intval = 0;
+			power_supply_set_property(chip->usb_psy,
+					POWER_SUPPLY_PROP_ONLINE, &prop);
 	}
 	if (rc < 0)
 		pr_err("could not set usb online, rc=%d\n", rc);
