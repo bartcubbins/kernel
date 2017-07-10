@@ -166,7 +166,8 @@
 			};
 		};
 
-		pmx_i2c_0 {
+		/* I2C CONFIGURATION */
+		i2c_0 {
 			/* active state */
 			i2c_0_active: i2c_0_active{
 				mux {
@@ -198,7 +199,7 @@
 			};
 		};
 
-		pmx_i2c_4 {
+		i2c_4 {
 			/* active state */
 			i2c_4_active: i2c_4_active{
 				mux {
@@ -230,7 +231,7 @@
 			};
 		};
 
-		pmx_i2c_5 {
+		i2c_5 {
 			/* active state */
 			i2c_5_active: i2c_5_active{
 				mux {
@@ -262,7 +263,7 @@
 			};
 		};
 
-		pmx_i2c_6 {
+		i2c_6 {
 			/* active state */
 			i2c_6_active: i2c_6_active{
 				mux {

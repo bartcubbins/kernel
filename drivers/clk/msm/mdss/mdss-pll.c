@@ -189,9 +189,12 @@ static int mdss_pll_clock_register(struct platform_device *pdev,
 	}
 
 	switch (pll_res->pll_interface_type) {
-	case MDSS_DSI_PLL_8996:
-		rc = dsi_pll_clock_register_8996(pdev, pll_res);
-		break;
+	case MDSS_DSI_PLL_LPM:		
+		rc = dsi_pll_clock_register_lpm(pdev, pll_res);		
+		break;		
+	case MDSS_DSI_PLL_HPM:		
+		rc = dsi_pll_clock_register_hpm(pdev, pll_res);		
+		break;		
 	case MDSS_DSI_PLL_8998:
 		rc = dsi_pll_clock_register_8998(pdev, pll_res);
 	case MDSS_DP_PLL_8998:
@@ -211,9 +214,6 @@ static int mdss_pll_clock_register(struct platform_device *pdev,
 		break;
 	case MDSS_HDMI_PLL_8998:
 		rc = hdmi_8998_pll_clock_register(pdev, pll_res);
-		break;
-	case MDSS_DSI_PLL_HPM:
-		rc = dsi_pll_clock_register_hpm(pdev, pll_res);
 		break;
 	case MDSS_UNKNOWN_PLL:
 	default:
@@ -428,6 +428,7 @@ static const struct of_device_id mdss_pll_dt_match[] = {
 	{.compatible = "qcom,mdss_dp_pll_8998"},
 	{.compatible = "qcom,mdss_hdmi_pll_8998"},
 	{.compatible = "qcom,mdss_dsi_pll_8976"},
+	{.compatible = "qcom,mdss_edp_pll"},
 	{}
 };
 
