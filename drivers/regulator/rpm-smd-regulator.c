@@ -1635,6 +1635,7 @@ static int rpm_vreg_device_probe(struct platform_device *pdev)
 		pr_err("%s: Cannot set voltage index. Bailing out.\n",
 			__func__);
 		goto fail_free_reg;
+	}
 
 	reg->always_send_voltage
 		= of_property_read_bool(node, "qcom,always-send-voltage");
