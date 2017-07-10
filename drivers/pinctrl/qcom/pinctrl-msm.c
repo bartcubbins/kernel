@@ -960,6 +960,8 @@ int msm_pinctrl_probe(struct platform_device *pdev,
 	int disabled_pins_num;
 	const struct device_node *np = pdev->dev.of_node;
 
+	pr_info("%s: Probing MSM PINCTRL.................\n", __func__);
+
 	msm_pinctrl_data = pctrl = devm_kzalloc(&pdev->dev,
 				sizeof(*pctrl), GFP_KERNEL);
 	if (!pctrl) {

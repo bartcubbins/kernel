@@ -1618,6 +1618,8 @@ static int qpnp_pin_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev,
 			"%s: no device nodes specified in topology\n",
 								__func__);
+		dev_err(&pdev->dev, "%s: lowest_gpio: %d, highest_gpio: %d\n",
+					__func__, lowest_gpio, highest_gpio);
 		rc = -EINVAL;
 		goto err_probe;
 	} else if (lowest_gpio == 0) {

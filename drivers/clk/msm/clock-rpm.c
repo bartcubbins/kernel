@@ -312,6 +312,7 @@ int enable_rpm_scaling(void)
 	if (rc < 0) {
 		if (rc != -EPROBE_DEFER)
 			WARN(1, "RPM clock scaling (sleep set) did not enable!\n");
+		pr_info("-------------------------CANNOT ENABLE RPM CLOCK SCALING (SLEEP SET)-------------------------\n");
 		return rc;
 	}
 
@@ -320,6 +321,7 @@ int enable_rpm_scaling(void)
 	if (rc < 0) {
 		if (rc != -EPROBE_DEFER)
 			WARN(1, "RPM clock scaling (active set) did not enable!\n");
+		pr_info("-------------------------CANNOT ENABLE RPM CLOCK SCALING (ACTIVE SET)-------------------------\n");
 		return rc;
 	}
 

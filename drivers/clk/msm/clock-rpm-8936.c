@@ -182,8 +182,10 @@ static int msm_rpmcc_8936_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret;
 
+pr_info()"----------------------------RPM 8939/36 PROBE----------------------------\n");
 	ret = enable_rpm_scaling();
 	if (ret < 0)
+		pr_info()"----------------------------CANNOT ENABLE RPM SCALING----------------------------\n");
 		return ret;
 
 	res =  platform_get_resource_byname(pdev, IORESOURCE_MEM, "cc_base");
@@ -198,6 +200,7 @@ static int msm_rpmcc_8936_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+pr_info()"----------------------------RPM SCALING ENABLED----------------------------\n");
 	ret = of_msm_clock_register(pdev->dev.of_node, msm_clocks_rpm,
 				ARRAY_SIZE(msm_clocks_rpm));
 	if (ret)

@@ -1631,7 +1631,9 @@ static int rpm_vreg_device_probe(struct platform_device *pdev)
 	reg->rdesc.ops		= vreg_ops[regulator_type];
 
 	rc = rpm_vreg_device_set_voltage_index(dev, reg, regulator_type);
-	if (rc)
+	if (rc) {
+		pr_err("%s: Cannot set voltage index. Bailing out.\n",
+			__func__);
 		goto fail_free_reg;
 
 	reg->always_send_voltage
@@ -1945,10 +1947,12 @@ int __init rpm_smd_regulator_driver_init(void)
 	for (i = 0; i < RPM_REGULATOR_PARAM_MAX; i++)
 		params[i].key = rpm_vreg_string_to_int(params[i].name);
 
+pr_info("-------------------------RPM-SMD-REGULATOR REGISTER VREG DEVICE DRIVER-------------------------\n");
 	rc = platform_driver_register(&rpm_vreg_device_driver);
 	if (rc)
 		return rc;
 
+pr_info("-------------------------RPM-SMD-REGULATOR REGISTER VREG RESOURCE DRIVER-------------------------\n");
 	return platform_driver_register(&rpm_vreg_resource_driver);
 }
 EXPORT_SYMBOL(rpm_smd_regulator_driver_init);
