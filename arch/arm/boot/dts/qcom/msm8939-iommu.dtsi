@@ -46,12 +46,12 @@
 	};
 
 	apps_smmu: qcom,iommu@1e00000 {
-		compatible = "qcom,msm-smmu-v2", "qcom,msm-mmu-500";
+		compatible = "qcom,msm-smmu-v2";
 		#address-cells = <1>;
 		#size-cells = <1>;
+		#iommu-cells = <1>;
 		ranges;
-		reg = <0x1e00000 0x40000
-			0x1ef0000 0x3000>;
+		reg = <0x1e00000 0x40000>;
 		reg-names = "iommu_base", "smmu_local_base";
 		interrupts = <0 43 0>, <0 42 0>;
 		interrupt-names = "global_cfg_NS_irq", "global_cfg_S_irq";
