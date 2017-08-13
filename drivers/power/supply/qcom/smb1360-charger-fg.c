@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2015, 2017 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -506,7 +506,8 @@ struct smb1360_chip {
 	struct qpnp_vadc_chip		*vadc_dev;
 	struct power_supply		*parallel_psy;
 	struct power_supply		*usb_psy;
-	struct power_supply		batt_psy;
+	struct power_supply_desc	batt_psy_d;
+	struct power_supply		*batt_psy;
 	struct smb1360_otg_regulator	otg_vreg;
 	struct mutex			irq_complete;
 	struct mutex			charging_disable_lock;
@@ -1746,10 +1747,10 @@ static int __smb1360_parallel_charger_enable(struct smb1360_chip *chip,
 		return 0;
 
 	pval.intval = (enable ? (chip->max_parallel_chg_current * 1000) : 0);
-	parallel_psy->set_property(parallel_psy,
+	power_supply_set_property(parallel_psy,
 		POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX, &pval);
 	pval.intval = (enable ? 1 : 0);
-	parallel_psy->set_property(parallel_psy,
+	power_supply_set_property(parallel_psy,
 		POWER_SUPPLY_PROP_CHARGING_ENABLED, &pval);
 
 	pr_debug("Parallel-charger %s max_chg_current=%d\n",
@@ -2207,8 +2208,7 @@ static int smb1360_battery_set_property(struct power_supply *psy,
 				       enum power_supply_property prop,
 				       const union power_supply_propval *val)
 {
-	struct smb1360_chip *chip = container_of(psy,
-				struct smb1360_chip, batt_psy);
+	struct smb1360_chip *chip = power_supply_get_drvdata(psy);
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
@@ -2216,13 +2216,13 @@ static int smb1360_battery_set_property(struct power_supply *psy,
 		if (chip->parallel_charging)
 			smb1360_parallel_charger_enable(chip,
 				PARALLEL_USER, val->intval);
-		power_supply_changed(&chip->batt_psy);
+		power_supply_changed(chip->batt_psy);
 		power_supply_changed(chip->usb_psy);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		chip->fake_battery_soc = val->intval;
 		pr_info("fake_soc set to %d\n", chip->fake_battery_soc);
-		power_supply_changed(&chip->batt_psy);
+		power_supply_changed(chip->batt_psy);
 		break;
 	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 		smb1360_system_temp_level_set(chip, val->intval);
@@ -2256,8 +2256,7 @@ static int smb1360_battery_get_property(struct power_supply *psy,
 				       enum power_supply_property prop,
 				       union power_supply_propval *val)
 {
-	struct smb1360_chip *chip = container_of(psy,
-				struct smb1360_chip, batt_psy);
+	struct smb1360_chip *chip = power_supply_get_drvdata(psy);
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_HEALTH:
@@ -2310,12 +2309,11 @@ static int smb1360_battery_get_property(struct power_supply *psy,
 
 static void smb1360_external_power_changed(struct power_supply *psy)
 {
-	struct smb1360_chip *chip = container_of(psy,
-				struct smb1360_chip, batt_psy);
+	struct smb1360_chip *chip = power_supply_get_drvdata(psy);
 	union power_supply_propval prop = {0,};
 	int rc, current_limit = 0;
 
-	rc = chip->usb_psy->get_property(chip->usb_psy,
+	rc = power_supply_get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_CURRENT_MAX, &prop);
 	if (rc < 0)
 		dev_err(chip->dev,
@@ -2334,7 +2332,7 @@ static void smb1360_external_power_changed(struct power_supply *psy)
 		mutex_unlock(&chip->current_change_lock);
 	}
 
-	rc = chip->usb_psy->get_property(chip->usb_psy,
+	rc = power_supply_get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_ONLINE, &prop);
 	if (rc < 0)
 		pr_err("could not read USB ONLINE property, rc=%d\n", rc);
@@ -2343,11 +2341,19 @@ static void smb1360_external_power_changed(struct power_supply *psy)
 	rc = 0;
 	if (chip->usb_present && !chip->charging_disabled_status
 					&& chip->usb_psy_ma != 0) {
-		if (prop.intval == 0)
-			rc = power_supply_set_online(chip->usb_psy, true);
+		if (prop.intval == 0) {
+			prop.intval = 1;
+			rc = power_supply_set_property(chip->usb_psy,
+							POWER_SUPPLY_PROP_ONLINE,
+							&prop);
+		}
 	} else {
-		if (prop.intval == 1 && !chip->usb_present)
-			rc = power_supply_set_online(chip->usb_psy, false);
+		if (prop.intval == 1 && !chip->usb_present) {
+			prop.intval = 0;
+			rc = power_supply_set_property(chip->usb_psy,
+							POWER_SUPPLY_PROP_ONLINE,
+							&prop);
+		}
 	}
 	if (rc < 0)
 		pr_err("could not set usb online, rc=%d\n", rc);
@@ -2647,6 +2653,7 @@ check_unplug_wakelock(struct smb1360_chip *chip)
 
 static int tulip_usbin_uv_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
+	union power_supply_propval pval = {0,};
 	bool usb_present = !rt_stat;
 	int rc;
 
@@ -2666,8 +2673,10 @@ static int tulip_usbin_uv_handler(struct smb1360_chip *chip, u8 rt_stat)
 	if (chip->usb_present && !usb_present) {
 		/* USB removed */
 		check_unplug_wakelock(chip);
-		chip->usb_present = usb_present;
-		power_supply_set_present(chip->usb_psy, usb_present);
+		pval.intval = chip->usb_present;
+		power_supply_set_property(chip->usb_psy,
+						POWER_SUPPLY_PROP_PRESENT,
+						&pval);
 		rc = smb1360_float_voltage_set(chip, chip->vfloat_mv);
 		if (rc)
 			pr_err("Couldn't set float voltage rc = %d\n", rc);
@@ -2677,7 +2686,10 @@ static int tulip_usbin_uv_handler(struct smb1360_chip *chip, u8 rt_stat)
 	if (!chip->usb_present && usb_present) {
 		/* USB inserted */
 		chip->usb_present = usb_present;
-		power_supply_set_present(chip->usb_psy, usb_present);
+		pval.intval = chip->usb_present;
+		power_supply_set_property(chip->usb_psy,
+						POWER_SUPPLY_PROP_PRESENT,
+						&pval);
 		pm_stay_awake(chip->dev);
 	}
 
@@ -3231,7 +3243,7 @@ static irqreturn_t smb1360_stat_handler(int irq, void *dev_id)
 
 	pr_debug("handler count = %d\n", handler_count);
 	if (handler_count)
-		power_supply_changed(&chip->batt_psy);
+		power_supply_changed(chip->batt_psy);
 
 	mutex_unlock(&chip->irq_complete);
 
@@ -3772,38 +3784,24 @@ struct regulator_ops smb1360_otg_reg_ops = {
 static int smb1360_regulator_init(struct smb1360_chip *chip)
 {
 	int rc = 0;
-	struct regulator_init_data *init_data;
 	struct regulator_config cfg = {};
 
-	init_data = of_get_regulator_init_data(chip->dev, chip->dev->of_node);
-	if (!init_data) {
-		dev_err(chip->dev, "Unable to allocate memory\n");
-		return -ENOMEM;
-	}
+	chip->otg_vreg.rdesc.owner = THIS_MODULE;
+	chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
+	chip->otg_vreg.rdesc.ops = &smb1360_otg_reg_ops;
+	chip->otg_vreg.rdesc.name = chip->dev->of_node->name;
+	chip->otg_vreg.rdesc.of_match = chip->dev->of_node->name;
 
-	if (init_data->constraints.name) {
-		chip->otg_vreg.rdesc.owner = THIS_MODULE;
-		chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
-		chip->otg_vreg.rdesc.ops = &smb1360_otg_reg_ops;
-		chip->otg_vreg.rdesc.name = init_data->constraints.name;
+	cfg.dev = chip->dev;
+	cfg.driver_data = chip;
 
-		cfg.dev = chip->dev;
-		cfg.init_data = init_data;
-		cfg.driver_data = chip;
-		cfg.of_node = chip->dev->of_node;
-
-		init_data->constraints.valid_ops_mask
-			|= REGULATOR_CHANGE_STATUS;
-
-		chip->otg_vreg.rdev = regulator_register(
-					&chip->otg_vreg.rdesc, &cfg);
-		if (IS_ERR(chip->otg_vreg.rdev)) {
-			rc = PTR_ERR(chip->otg_vreg.rdev);
-			chip->otg_vreg.rdev = NULL;
-			if (rc != -EPROBE_DEFER)
-				dev_err(chip->dev,
-					"OTG reg failed, rc=%d\n", rc);
-		}
+	chip->otg_vreg.rdev = regulator_register(&chip->otg_vreg.rdesc, &cfg);
+	if (IS_ERR(chip->otg_vreg.rdev)) {
+		rc = PTR_ERR(chip->otg_vreg.rdev);
+		chip->otg_vreg.rdev = NULL;
+		if (rc != -EPROBE_DEFER)
+			dev_err(chip->dev,
+				"OTG reg failed, rc=%d\n", rc);
 	}
 
 	return rc;
@@ -3920,6 +3918,7 @@ restore_fg:
 
 static int determine_initial_status(struct smb1360_chip *chip)
 {
+	union power_supply_propval pval = {0,};
 	int rc;
 	u8 reg = 0;
 
@@ -3978,7 +3977,10 @@ static int determine_initial_status(struct smb1360_chip *chip)
 	UPDATE_IRQ_STAT(IRQ_E_REG, reg);
 
 	chip->usb_present = (reg & IRQ_E_USBIN_UV_BIT) ? false : true;
-	power_supply_set_present(chip->usb_psy, chip->usb_present);
+	pval.intval = chip->usb_present;
+	power_supply_set_property(chip->usb_psy,
+							POWER_SUPPLY_PROP_PRESENT,
+							&pval);
 
 	return 0;
 }
@@ -4874,7 +4876,7 @@ static void smb1360_delayed_init_work_fn(struct work_struct *work)
 		 * power_supply to make sure the correct SoC reported
 		 * timely.
 		 */
-		power_supply_changed(&chip->batt_psy);
+		power_supply_changed(chip->batt_psy);
 	} else if (rc == -ETIMEDOUT) {
 		/*
 		 * If the delayed hw init failed causing by waiting for
@@ -5528,6 +5530,7 @@ static int smb1360_probe(struct i2c_client *client,
 	int rc;
 	struct smb1360_chip *chip;
 	struct power_supply *usb_psy;
+	struct power_supply_config batt_psy_cfg = {};
 
 	usb_psy = power_supply_get_by_name("usb");
 	if (!usb_psy) {
@@ -5625,19 +5628,23 @@ static int smb1360_probe(struct i2c_client *client,
 	chip->chg_state = CSS_GENERAL;
 #endif
 
-	chip->batt_psy.name		= "battery";
-	chip->batt_psy.type		= POWER_SUPPLY_TYPE_BATTERY;
-	chip->batt_psy.get_property	= smb1360_battery_get_property;
-	chip->batt_psy.set_property	= smb1360_battery_set_property;
-	chip->batt_psy.properties	= smb1360_battery_properties;
-	chip->batt_psy.num_properties  = ARRAY_SIZE(smb1360_battery_properties);
-	chip->batt_psy.external_power_changed = smb1360_external_power_changed;
-	chip->batt_psy.property_is_writeable = smb1360_battery_is_writeable;
+	chip->batt_psy_d.name		= "battery";
+	chip->batt_psy_d.type		= POWER_SUPPLY_TYPE_BATTERY;
+	chip->batt_psy_d.get_property	= smb1360_battery_get_property;
+	chip->batt_psy_d.set_property	= smb1360_battery_set_property;
+	chip->batt_psy_d.properties	= smb1360_battery_properties;
+	chip->batt_psy_d.num_properties  = ARRAY_SIZE(smb1360_battery_properties);
+	chip->batt_psy_d.external_power_changed = smb1360_external_power_changed;
+	chip->batt_psy_d.property_is_writeable = smb1360_battery_is_writeable;
 
-	rc = power_supply_register(chip->dev, &chip->batt_psy);
-	if (rc < 0) {
-		dev_err(&client->dev,
-			"Unable to register batt_psy rc = %d\n", rc);
+	batt_psy_cfg.drv_data = chip;
+	batt_psy_cfg.num_supplicants = 0;
+
+	chip->batt_psy = devm_power_supply_register(chip->dev,
+							&chip->batt_psy_d, &batt_psy_cfg);
+	if (IS_ERR(chip->batt_psy)) {
+		dev_err(&client->dev, "Unable to register batt_psy rc = %ld\n",
+						PTR_ERR(chip->batt_psy));
 		goto fail_hw_init;
 	}
 
@@ -5650,7 +5657,6 @@ static int smb1360_probe(struct i2c_client *client,
 			dev_err(&client->dev,
 				"request_irq for irq=%d  failed rc = %d\n",
 				client->irq, rc);
-			goto unregister_batt_psy;
 		}
 		enable_irq_wake(client->irq);
 	}
@@ -5783,8 +5789,6 @@ static int smb1360_probe(struct i2c_client *client,
 			smb1360_get_prop_batt_capacity(chip));
 
 	return 0;
-unregister_batt_psy:
-	power_supply_unregister(&chip->batt_psy);
 fail_hw_init:
 	regulator_unregister(chip->otg_vreg.rdev);
 destroy_mutex:
@@ -5808,7 +5812,6 @@ static int smb1360_remove(struct i2c_client *client)
 #endif
 
 	regulator_unregister(chip->otg_vreg.rdev);
-	power_supply_unregister(&chip->batt_psy);
 	wakeup_source_trash(&chip->smb1360_ws.source);
 	mutex_destroy(&chip->charging_disable_lock);
 	mutex_destroy(&chip->current_change_lock);
@@ -5904,7 +5907,7 @@ static int smb1360_resume(struct device *dev)
 		mutex_unlock(&chip->irq_complete);
 	}
 
-	power_supply_changed(&chip->batt_psy);
+	power_supply_changed(chip->batt_psy);
 
 #ifdef CONFIG_MACH_SONY_TULIP
 	schedule_delayed_work(&chip->brain_work, msecs_to_jiffies(3000));
