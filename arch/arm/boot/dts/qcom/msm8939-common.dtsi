@@ -951,6 +951,7 @@
 		reg-names = "core", "phy_csr";
 		#address-cells = <1>;
 		#size-cells = <1>;
+		#reset-cells = <1>;
 		ranges;
 
 		interrupts = <0 134 0>,<0 140 0>;
@@ -960,8 +961,6 @@
 		HSUSB_1p8-supply = <&pm8916_l7>;
 		HSUSB_3p3-supply = <&pm8916_l13>;
 		qcom,vdd-voltage-level = <1 5 7>;
-		vbus_otg-supply = <&smb1360_otg_supply>; /* TEMP */
-		regulator-name = "smb1360_otg_vreg"; /* TEMP */
 
 		qcom,hsusb-otg-phy-init-seq =
 			<0x44 0x80 0x6B 0x81 0x24 0x82 0x13 0x83 0xffffffff>;
@@ -981,6 +980,11 @@
 				<87 512 0 0>,
 				<87 512 80000 0>,
 				<87 512 6000  6000>;
+
+		resets = <&clock_gcc RST_QUSB2_PHY_BCR>,
+			 <&clock_gcc RST_USB2_HS_PHY_ONLY_BCR>;
+		reset-names = "phy_reset", "phy_por_reset";
+
 		clocks = <&clock_gcc clk_gcc_usb_hs_ahb_clk>,
 			 <&clock_gcc clk_gcc_usb_hs_system_clk>,
 			 <&clock_gcc clk_gcc_usb2a_phy_sleep_clk>,
