@@ -947,12 +947,12 @@
 
 	usb_otg: usb@78d9000 {
 		compatible = "qcom,hsusb-otg";
+		reg = <0x78d9000 0x400>, <0x6c000 0x200>;
+		reg-names = "core", "phy_csr";
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
 
-		reg = <0x78d9000 0x400>;
-		reg-names = "core";
 		interrupts = <0 134 0>,<0 140 0>;
 		interrupt-names = "core_irq", "async_irq";
 
@@ -960,14 +960,16 @@
 		HSUSB_1p8-supply = <&pm8916_l7>;
 		HSUSB_3p3-supply = <&pm8916_l13>;
 		qcom,vdd-voltage-level = <1 5 7>;
+		vbus_otg-supply = <&smb1360_otg_supply>; /* TEMP */
+		regulator-name = "smb1360_otg_vreg"; /* TEMP */
 
 		qcom,hsusb-otg-phy-init-seq =
 			<0x44 0x80 0x6B 0x81 0x24 0x82 0x13 0x83 0xffffffff>;
-		qcom,hsusb-otg-phy-type = <2>;
+		qcom,hsusb-otg-phy-type = <3>;
 		qcom,hsusb-otg-mode = <1>;
 		qcom,hsusb-otg-otg-control = <2>;
-		qcom,hsusb-otg-disable-reset;
 		qcom,dp-manual-pullup;
+		qcom,hsusb-otg-disable-reset;
 		qcom,hsusb-otg-mpm-dpsehv-int = <49>;
 		qcom,hsusb-otg-mpm-dmsehv-int = <58>;
 		qcom,usbin-vadc = <&pm8916_vadc>;
