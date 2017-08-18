@@ -3786,16 +3786,17 @@ static int smb1360_regulator_init(struct smb1360_chip *chip)
 	int rc = 0;
 	struct regulator_config cfg = {};
 
-	chip->otg_vreg.rdesc.owner = THIS_MODULE;
-	chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
-	chip->otg_vreg.rdesc.ops = &smb1360_otg_reg_ops;
-	chip->otg_vreg.rdesc.name = chip->dev->of_node->name;
-	chip->otg_vreg.rdesc.of_match = chip->dev->of_node->name;
-
 	cfg.dev = chip->dev;
 	cfg.driver_data = chip;
 
-	chip->otg_vreg.rdev = regulator_register(&chip->otg_vreg.rdesc, &cfg);
+	chip->otg_vreg.rdesc.owner = THIS_MODULE;
+	chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
+	chip->otg_vreg.rdesc.ops = &smb1360_otg_reg_ops;
+	chip->otg_vreg.rdesc.name = "smb1360-chg-fg";
+	chip->otg_vreg.rdesc.of_match = "smb1360-chg-fg";
+
+	chip->otg_vreg.rdev = devm_regulator_register(chip->dev,
+					&chip->otg_vreg.rdesc, &cfg);
 	if (IS_ERR(chip->otg_vreg.rdev)) {
 		rc = PTR_ERR(chip->otg_vreg.rdev);
 		chip->otg_vreg.rdev = NULL;
@@ -5543,10 +5544,6 @@ static int smb1360_probe(struct i2c_client *client,
 		dev_err(&client->dev, "Unable to allocate memory\n");
 		return -ENOMEM;
 	}
-
-
-
-
 
 	chip->resume_completed = true;
 	chip->client = client;
