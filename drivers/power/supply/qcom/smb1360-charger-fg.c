@@ -3784,25 +3784,38 @@ struct regulator_ops smb1360_otg_reg_ops = {
 static int smb1360_regulator_init(struct smb1360_chip *chip)
 {
 	int rc = 0;
+	struct regulator_init_data *init_data;
 	struct regulator_config cfg = {};
 pr_info("---------------REGULATOR PROBE BEGIN------------------\n");
-	chip->otg_vreg.rdesc.owner = THIS_MODULE;
-	chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
-	chip->otg_vreg.rdesc.ops = &smb1360_otg_reg_ops;
-	chip->otg_vreg.rdesc.name = chip->dev->of_node->name;
-	chip->otg_vreg.rdesc.of_match = chip->dev->of_node->name;
-pr_info("----------------OUR REGULATOR NAME IS, name = %s\n", chip->otg_vreg.rdesc.name);
-	cfg.dev = chip->dev;
-	cfg.driver_data = chip;
+	init_data = of_get_regulator_init_data(chip->dev, chip->dev->of_node, NULL);
+	if (!init_data) {
+		dev_err(chip->dev, "Unable to allocate memory\n");
+		return -ENOMEM;
+	}
 
-	chip->otg_vreg.rdev = regulator_register(&chip->otg_vreg.rdesc, &cfg);
-	pr_info("--------------------WHAT WE GET FROM CHIP->OTG_VREG.rdev = %p\n", chip->otg_vreg.rdev);
-	if (IS_ERR(chip->otg_vreg.rdev)) {
-		rc = PTR_ERR(chip->otg_vreg.rdev);
-		chip->otg_vreg.rdev = NULL;
-		if (rc != -EPROBE_DEFER)
-			dev_err(chip->dev,
-				"OTG reg failed, rc=%d\n", rc);
+	if (init_data->constraints.name) {
+		chip->otg_vreg.rdesc.owner = THIS_MODULE;
+		chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
+		chip->otg_vreg.rdesc.ops = &smb1360_otg_reg_ops;
+		chip->otg_vreg.rdesc.name = init_data->constraints.name;
+pr_info("----------------OUR REGULATOR NAME IS, name = %s\n", chip->otg_vreg.rdesc.name); // smb1360_otg_vreg
+		cfg.dev = chip->dev;
+		cfg.init_data = init_data;
+		cfg.driver_data = chip;
+		cfg.of_node = chip->dev->of_node;
+
+		init_data->constraints.valid_ops_mask
+			|= REGULATOR_CHANGE_STATUS;
+
+		chip->otg_vreg.rdev = regulator_register(
+					&chip->otg_vreg.rdesc, &cfg);
+		if (IS_ERR(chip->otg_vreg.rdev)) {
+			rc = PTR_ERR(chip->otg_vreg.rdev);
+			chip->otg_vreg.rdev = NULL;
+			if (rc != -EPROBE_DEFER)
+				dev_err(chip->dev,
+					"OTG reg failed, rc=%d\n", rc);
+		}
 	}
 pr_info("-----------------REGULATOR PROBE SUCCESS----------------- ==== %d\n", rc);
 	return rc;
