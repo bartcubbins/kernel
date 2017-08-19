@@ -796,6 +796,7 @@
 		#size-cells = <1>;
 		clock-names = "xo", "xo_a";
 		#clock-cells = <1>;
+		#reset-cells = <1>;
 		ranges;
 		qcom,spm@0 {
 			compatible = "qcom,gcc-spm-8936";
@@ -951,7 +952,6 @@
 		reg-names = "core", "phy_csr";
 		#address-cells = <1>;
 		#size-cells = <1>;
-		#reset-cells = <1>;
 		ranges;
 
 		interrupts = <0 134 0>,<0 140 0>;
