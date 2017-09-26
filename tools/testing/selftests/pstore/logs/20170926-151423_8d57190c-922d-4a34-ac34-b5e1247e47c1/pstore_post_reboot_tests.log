@@ -1,0 +1,7 @@
+Вто Сен 26 15:14:23 EEST 2017
+=== Pstore unit tests (pstore_post_reboot_tests) ===
+UUID=8d57190c-922d-4a34-ac34-b5e1247e47c1
+Checking pstore backend is registered ... ok
+	backend=(null)
+	cmdline=BOOT_IMAGE=/boot/vmlinuz-4.10.0-30-generic root=UUID=8e4a990a-220d-44c7-b85a-4ecded9e3ba1 ro quiet splash vt.handoff=7
+pstore_crash_test has not been executed yet. we skip further tests.

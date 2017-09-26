@@ -2,6 +2,7 @@
 # taken to initialize them in the correct order. Link order is the only way
 # to ensure this currently.
 obj-$(CONFIG_TEGRA_HOST1X)	+= host1x/
-obj-y			+= drm/ vga/
+obj-y			+= drm/ vga/ msm_legacy/
 obj-$(CONFIG_IMX_IPUV3_CORE)	+= ipu-v3/
-obj-$(CONFIG_QCOM_KGSL) += msm/
+obj-$(CONFIG_QCOM_KGSL)	+= msm/
+obj-$(CONFIG_MSM_KGSL_LEGACY)	+= msm_legacy/

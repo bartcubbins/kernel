@@ -799,11 +799,9 @@ static int clock_a53_probe(struct platform_device *pdev)
 		clk_set_rate(&cci_clk.c, rate);
 	}
 
-#ifdef CONFIG_MACH_SONY_TULIP
+
 	for (mux_id = 0; mux_id < A53SS_MUX_CCI; mux_id++) {
-#else
-	for (mux_id = 0; mux_id < mux_num; mux_id++) {
-#endif
+
 		/* Force a PLL reconfiguration */
 		config_pll(mux_id);
 	}

@@ -1,0 +1,9 @@
+Вто Сен 26 15:14:23 EEST 2017
+=== Pstore unit tests (pstore_tests) ===
+UUID=d23a6df5-fa70-4d9b-a882-6e2ad81bd349
+Checking pstore backend is registered ... ok
+	backend=(null)
+	cmdline=BOOT_IMAGE=/boot/vmlinuz-4.10.0-30-generic root=UUID=8e4a990a-220d-44c7-b85a-4ecded9e3ba1 ro quiet splash vt.handoff=7
+Checking pstore console is registered ... FAIL
+Checking /dev/pmsg0 exists ... FAIL
+Writing unique string to /dev/pmsg0 ... FAIL
