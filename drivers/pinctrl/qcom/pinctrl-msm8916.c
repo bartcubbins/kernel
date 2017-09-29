@@ -380,8 +380,6 @@ enum msm8916_functions {
 	MSM_MUX_atest_gpsadc0,
 	MSM_MUX_atest_gpsadc1,
 	MSM_MUX_atest_tsens,
-	MSM_MUX_atest_wlan0,
-	MSM_MUX_atest_wlan1,
 	MSM_MUX_backlight_en,
 	MSM_MUX_bimc_dte0,
 	MSM_MUX_bimc_dte1,
@@ -533,8 +531,6 @@ static const char * const atest_combodac_groups[] = {
 static const char * const atest_gpsadc0_groups[] = { "gpio7" };
 static const char * const atest_gpsadc1_groups[] = { "gpio18" };
 static const char * const atest_tsens_groups[] = { "gpio112" };
-static const char * const atest_wlan0_groups[] = { "gpio22" };
-static const char * const atest_wlan1_groups[] = { "gpio23" };
 static const char * const backlight_en_groups[] = { "gpio98" };
 static const char * const bimc_dte0_groups[] = { "gpio63", "gpio65" };
 static const char * const bimc_dte1_groups[] = { "gpio64", "gpio66" };
@@ -699,8 +695,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(atest_gpsadc0),
 	FUNCTION(atest_gpsadc1),
 	FUNCTION(atest_tsens),
-	FUNCTION(atest_wlan0),
-	FUNCTION(atest_wlan1),
 	FUNCTION(backlight_en),
 	FUNCTION(bimc_dte0),
 	FUNCTION(bimc_dte1),
