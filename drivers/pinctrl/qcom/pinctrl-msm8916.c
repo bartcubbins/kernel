@@ -457,8 +457,6 @@ enum msm8916_functions {
 	MSM_MUX_pbs2,
 	MSM_MUX_pri_mi2s,
 	MSM_MUX_pri_mi2s_ws,
-	MSM_MUX_pwr_crypto_enabled_a,
-	MSM_MUX_pwr_crypto_enabled_b,
 	MSM_MUX_qdss_ctitrig_in_a0,
 	MSM_MUX_qdss_ctitrig_in_a1,
 	MSM_MUX_qdss_ctitrig_in_b0,
@@ -624,8 +622,6 @@ static const char * const pri_mi2s_groups[] = {
 	"gpio113", "gpio114", "gpio115", "gpio116"
 };
 static const char * const pri_mi2s_ws_groups[] = { "gpio110" };
-static const char * const pwr_crypto_enabled_a_groups[] = { "gpio35" };
-static const char * const pwr_crypto_enabled_b_groups[] = { "gpio115" };
 static const char * const qdss_ctitrig_in_a0_groups[] = { "gpio20" };
 static const char * const qdss_ctitrig_in_a1_groups[] = { "gpio49" };
 static const char * const qdss_ctitrig_in_b0_groups[] = { "gpio21" };
@@ -766,8 +762,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(pbs2),
 	FUNCTION(pri_mi2s),
 	FUNCTION(pri_mi2s_ws),
-	FUNCTION(pwr_crypto_enabled_a),
-	FUNCTION(pwr_crypto_enabled_b),
 	FUNCTION(qdss_ctitrig_in_a0),
 	FUNCTION(qdss_ctitrig_in_a1),
 	FUNCTION(qdss_ctitrig_in_b0),
@@ -835,7 +829,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(32, cci_timer1, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(33, cci_async, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(34, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
-	PINGROUP(35, pwr_crypto_enabled_a, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
+	PINGROUP(35, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(36, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA),
 	PINGROUP(37, blsp_spi3_cs2, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, NA),
 	PINGROUP(38, cci_timer2, adsp_ext, NA, NA, NA, NA, NA, NA, NA),
@@ -915,7 +909,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(112, sec_mi2s, NA, NA, NA, qdss_tracedata_a, NA, atest_tsens, NA, NA),
 	PINGROUP(113, pri_mi2s, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_a),
 	PINGROUP(114, pri_mi2s, NA, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
-	PINGROUP(115, pri_mi2s, pwr_crypto_enabled_b, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
+	PINGROUP(115, pri_mi2s, NA, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
 	PINGROUP(116, pri_mi2s, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(117, sec_mi2s, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(118, sec_mi2s, NA, NA, NA, NA, NA, NA, NA, NA),
