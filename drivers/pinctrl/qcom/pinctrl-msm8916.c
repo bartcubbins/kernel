@@ -367,7 +367,6 @@ static const unsigned int qdsd_data3_pins[] = { 133 };
 	}
 
 enum msm8916_functions {
-	MSM_MUX_adsp_ext,
 	MSM_MUX_alsp_int,
 	MSM_MUX_atest_combodac,
 	MSM_MUX_backlight_en,
@@ -490,7 +489,6 @@ static const char * const gpio_groups[] = {
 	"gpio111", "gpio112", "gpio113", "gpio114", "gpio115", "gpio116",
 	"gpio117", "gpio118", "gpio119", "gpio120", "gpio121"
 };
-static const char * const adsp_ext_groups[] = { "gpio38" };
 static const char * const alsp_int_groups[] = { "gpio113" };
 static const char * const atest_combodac_groups[] = {
 	"gpio4", "gpio12", "gpio13", "gpio20", "gpio21", "gpio28", "gpio29",
@@ -635,7 +633,6 @@ static const char * const wcss_wlan_groups[] = {
 static const char * const webcam1_rst_groups[] = { "gpio28" };
 
 static const struct msm_function msm8916_functions[] = {
-	FUNCTION(adsp_ext),
 	FUNCTION(alsp_int),
 	FUNCTION(atest_combodac),
 	FUNCTION(backlight_en),
@@ -776,7 +773,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(35, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(36, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA),
 	PINGROUP(37, blsp_spi3_cs2, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, NA),
-	PINGROUP(38, cci_async, adsp_ext, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(38, cci_async, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(39, wcss_bt, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(40, wcss_wlan, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(41, wcss_wlan, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
