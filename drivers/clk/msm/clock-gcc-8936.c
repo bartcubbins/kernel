@@ -2223,6 +2223,17 @@ static struct branch_clk gcc_camss_ahb_clk = {
 	},
 };
 
+static struct branch_clk gcc_camss_cpp_axi_clk = {
+	.cbcr_reg = CAMSS_CPP_AXI_CBCR,
+	.has_sibling = 0,
+	.base = &virt_bases[GCC_BASE],
+	.c = {
+		.dbg_name = "gcc_camss_cpp_axi_clk",
+		.ops = &clk_ops_branch,
+		CLK_INIT(gcc_camss_cpp_axi_clk.c),
+	},
+};
+
 static struct branch_clk gcc_camss_cpp_ahb_clk = {
 	.cbcr_reg = CAMSS_CPP_AHB_CBCR,
 	.has_sibling = 1,
@@ -3101,6 +3112,7 @@ static struct mux_clk gcc_debug_mux = {
 		{&gcc_camss_vfe_ahb_clk.c,		0x00bb},
 		{&gcc_camss_vfe_axi_clk.c,		0x00bc},
 		{&gcc_camss_csi_vfe0_clk.c,		0x00bf},
+		{&gcc_camss_cpp_axi_clk.c,      0x01b5},
 		{&gcc_camss_csi0_clk.c,			0x00c0},
 		{&gcc_camss_csi0_ahb_clk.c,		0x00c1},
 		{&gcc_camss_csi0phy_clk.c,		0x00c2},
@@ -3293,6 +3305,7 @@ static struct clk_lookup msm_clocks_lookup[] = {
 	CLK_LIST(gcc_camss_ahb_clk),
 	CLK_LIST(gcc_camss_top_ahb_clk),
 	CLK_LIST(gcc_camss_cpp_ahb_clk),
+	CLK_LIST(gcc_camss_cpp_axi_clk),
 	CLK_LIST(gcc_camss_cpp_clk),
 	CLK_LIST(gcc_camss_vfe0_clk),
 	CLK_LIST(gcc_camss_vfe_ahb_clk),

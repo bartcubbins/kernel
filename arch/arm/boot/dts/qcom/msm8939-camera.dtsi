@@ -12,8 +12,18 @@
  */
 
 &soc {
-	qcom,msm-cam@1800000{
+	qcom,msm-cam@1b00000{
 		compatible = "qcom,msm-cam";
+		reg = <0x1b00000 0x10000>;
+		reg-names = "msm-cam";
+		status = "ok";
+		/*
+		 * Note: It may also be comfortable to use 400000000
+		 *       as TURBO frequency (still gpll0).
+		 *       Would it be a waste of battery power?
+		 */
+		bus-vectors = "suspend", "svs", "nominal", "turbo";
+		qcom,bus-votes = <0 160000000 320000000 320000000>;
 	};
 
 	qcom,csiphy@1b0ac00 {
@@ -24,6 +34,11 @@
 		reg-names = "csiphy", "csiphy_clk_mux";
 		interrupts = <0 78 0>;
 		interrupt-names = "csiphy";
+		qcom,csi-vdd-voltage = <1200000>;
+		qcom,mipi-csi-vdd-supply = <&pm8916_l2>;
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
+		qcom,cam-vreg-name = "mmagic", "gdscr";
 		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_csi0phytimer_clk_src>,
@@ -35,6 +50,10 @@
 			"csiphy_timer_src_clk", "csiphy_timer_clk",
 			"camss_ahb_src", "csi_phy_clk",
 			"camss_ahb_clk";
+
+		resets = <&clock_gcc RST_CAMSS_MICRO_BCR>;
+		reset-names = "micro_iface_reset";
+
 		qcom,clock-rates = <0 80000000 200000000 0 0 0 0>;
 	};
 
@@ -46,6 +65,11 @@
 		reg-names = "csiphy", "csiphy_clk_mux";
 		interrupts = <0 79 0>;
 		interrupt-names = "csiphy";
+		qcom,csi-vdd-voltage = <1200000>;
+		qcom,mipi-csi-vdd-supply = <&pm8916_l2>;
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
+		qcom,cam-vreg-name = "mmagic", "gdscr";
 		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_csi1phytimer_clk_src>,
@@ -62,13 +86,16 @@
 
 	qcom,csid@1b08000  {
 		cell-index = <0>;
-		compatible = "qcom,csid-v3.1", "qcom,csid";
+		compatible = "qcom,csid-v3.6.0", "qcom,csid";
 		reg = <0x1b08000 0x100>;
 		reg-names = "csid";
 		interrupts = <0 51 0>;
 		interrupt-names = "csid";
 		qcom,csi-vdd-voltage = <1200000>;
 		qcom,mipi-csi-vdd-supply = <&pm8916_l2>;
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
+		qcom,cam-vreg-name = "mmagic", "gdscr";
 		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_csi0_ahb_clk>,
@@ -86,13 +113,16 @@
 
 	qcom,csid@1b08400 {
 		cell-index = <1>;
-		compatible = "qcom,csid-v3.1", "qcom,csid";
+		compatible = "qcom,csid-v3.6.0", "qcom,csid";
 		reg = <0x1b08400 0x100>;
 		reg-names = "csid";
 		interrupts = <0 52 0>;
 		interrupt-names = "csid";
 		qcom,csi-vdd-voltage = <1200000>;
 		qcom,mipi-csi-vdd-supply = <&pm8916_l2>;
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
+		qcom,cam-vreg-name = "mmagic", "gdscr";
 		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_csi1_ahb_clk>,
@@ -110,13 +140,16 @@
 
 	qcom,csid@1b08800 {
 		cell-index = <2>;
-		compatible = "qcom,csid-v3.1", "qcom,csid";
+		compatible = "qcom,csid-v3.6.0", "qcom,csid";
 		reg = <0x1b08800 0x100>;
 		reg-names = "csid";
 		interrupts = <0 153 0>;
 		interrupt-names = "csid";
 		qcom,csi-vdd-voltage = <1200000>;
 		qcom,mipi-csi-vdd-supply = <&pm8916_l2>;
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
+		qcom,cam-vreg-name = "mmagic", "gdscr";
 		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_csi2_ahb_clk>,
@@ -140,8 +173,12 @@
 		reg-names = "ispif", "csi_clk_mux";
 		interrupts = <0 55 0>;
 		interrupt-names = "ispif";
+		mmagic-supply = <&stub_mmagic_camss>;
+		camss-supply = <&stub_camss_top>;
 		clocks = <&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_ahb_clk>,
+			<&clock_gcc clk_gcc_camss_top_ahb_clk>,
+			<&clock_gcc clk_camss_top_ahb_clk_src>,
 			<&clock_gcc clk_csi0_clk_src>,
 			<&clock_gcc clk_gcc_camss_csi0_clk>,
 			<&clock_gcc clk_gcc_camss_csi0pix_clk>,
@@ -165,6 +202,7 @@
 			<&clock_gcc clk_gcc_camss_vfe0_clk>,
 			<&clock_gcc clk_gcc_camss_csi_vfe0_clk>;
 		clock-names = "ispif_ahb_clk","camss_ahb_clk",
+			"camss_top_ahb_clk", "camms_ahb_src",
 			"csi0_src_clk", "csi0_clk",
 			"csi0_pix_clk","csi0_rdi_clk", "csi1_src_clk",
 			"csi1_clk", "csi1_pix_clk", "csi1_rdi_clk",
@@ -176,7 +214,7 @@
 		qcom,clock-rates = <80000000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0>;
 	};
 
-	qcom,vfe@1b10000 {
+	vfe0: qcom,vfe0@1b10000 {
 		cell-index = <0>;
 		compatible = "qcom,vfe40";
 		reg = <0x1b10000 0x1000>,
@@ -185,6 +223,8 @@
 		interrupts = <0 57 0>;
 		interrupt-names = "vfe";
 		vdd-supply = <&gdsc_vfe0>;
+		mmagic-supply = <&stub_mmagic_camss>;
+		camss-supply = <&stub_camss_top>;
 		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_vfe0_clk_src>,
 			<&clock_gcc clk_gcc_camss_vfe0_clk>,
@@ -220,6 +260,11 @@
 		max-clk-turbo = <432000000>;
 	};
 
+	qcom,vfe {
+		compatible = "qcom,vfe";
+		num_child = <1>;
+	};
+
 	qcom,cam_smmu {
 		compatible = "qcom,msm-cam-smmu";
 		msm_cam_smmu_cb1: msm_cam_smmu_cb1 {
@@ -248,13 +293,16 @@
 	};
 
 	qcom,jpeg@1b1c000 {
+		status = "ok";
 		cell-index = <0>;
 		compatible = "qcom,jpeg";
 		reg = <0x1b1c000 0x400>,
 			<0x1b60000 0xc30>;
-		reg-names = "jpeg";
+		reg-names = "jpeg_hw", "jpeg_vbif";
 		interrupts = <0 59 0>;
 		interrupt-names = "jpeg";
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
 		vdd-supply = <&gdsc_jpeg>;
 		clocks = <&clock_gcc clk_gcc_camss_jpeg0_clk>,
 			<&clock_gcc clk_gcc_camss_jpeg_ahb_clk>,
@@ -265,6 +313,15 @@
 			"bus_clk0", "camss_top_ahb_clk",
 			"camss_ahb_clk";
 		qcom,clock-rates = <266670000 0 0 0 0>;
+		qcom,qos-reg-settings = <0x28 0x0000000e>,
+			<0xc8 0x00000000>;
+		qcom,vbif-reg-settings = <0xc0 0x10101000>,
+			<0xb0 0x10100010>;
+		qcom,msm-bus,name = "msm_camera_jpeg0";
+		qcom,msm-bus,num-cases = <2>;
+		qcom,msm-bus,num-paths = <1>;
+		qcom,msm-bus,vectors-KBps = <62 512 0 0>,
+			<62 512 800000 800000>;
 	};
 
 	qcom,irqrouter@1b00000 {
@@ -278,31 +335,46 @@
 		cell-index = <0>;
 		compatible = "qcom,cpp";
 		reg = <0x1b04000 0x100>,
-			<0x1b40000 0x200>,
+			<0x1b80000 0x200>,
 			<0x1b18000 0x018>;
 		reg-names = "cpp", "cpp_vbif", "cpp_hw";
 		interrupts = <0 49 0>;
 		interrupt-names = "cpp";
-		vdd-supply = <&gdsc_vfe0>;
-		clocks = <&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
-			<&clock_gcc clk_vfe0_clk_src>,
-			<&clock_gcc clk_gcc_camss_vfe0_clk>,
-			<&clock_gcc clk_gcc_camss_vfe_ahb_clk>,
-			<&clock_gcc clk_gcc_camss_cpp_clk>,
+		mmagic-vdd-supply = <&stub_mmagic_camss>;
+		camss-vdd-supply = <&stub_camss_top>;
+		vdd-supply = <&gdsc_cpp>;
+		qcom,vdd-names = "mmagic-vdd", "camss-vdd", "vdd";
+		clocks = <&clock_gcc clk_gcc_camss_top_ahb_clk>,
+			<&clock_gcc clk_cpp_clk_src>,
 			<&clock_gcc clk_gcc_camss_cpp_ahb_clk>,
-			<&clock_gcc clk_gcc_camss_vfe_axi_clk>,
+			<&clock_gcc clk_gcc_camss_cpp_axi_clk>,
+			<&clock_gcc clk_gcc_camss_cpp_clk>,
 			<&clock_gcc clk_gcc_camss_micro_ahb_clk>,
-			<&clock_gcc clk_gcc_camss_ahb_clk>,
-			<&clock_gcc clk_gcc_camss_top_ahb_clk>;
-		clock-names = "ispif_ahb_clk", "vfe_clk_src",
-			"camss_vfe_vfe_clk", "iface_clk", "cpp_core_clk",
-			"cpp_iface_clk", "cpp_bus_clk", "micro_iface_clk",
-			"camss_ahb_clk", "camss_top_ahb_clk";
-		qcom,clock-rates = <80000000 320000000 0 0 320000000 0 0 0 0 0>;
-		bus_master = <1>;
+			<&clock_gcc clk_gcc_camss_ahb_clk>;
+		clock-names = "camss_top_ahb_clk", "cpp_core_clk",
+			"camss_vfe_cpp_ahb_clk", "camss_vfe_cpp_axi_clk",
+			"camss_vfe_cpp_clk","micro_iface_clk", "camss_ahb_clk";
+
+		resets = <&clock_gcc RST_CAMSS_MICRO_BCR>;
+		reset-names = "micro_iface_reset";
+
+		qcom,clock-rates = <0 240000000 0 0 240000000 0 0>;
+		qcom,min-clock-rate = <160000000>;
+		qcom,src-clock-rates = <160000000 240000000 320000000
+			400000000 480000000>;
+		qcom,micro-reset;
+
+		qcom,bus-master = <1>;
+		qcom,msm-bus,name = "msm_camera_cpp";
+		qcom,msm-bus,num-cases = <2>;
+		qcom,msm-bus,num-paths = <1>;
+		qcom,msm-bus,vectors-KBps =
+			<106 512 0 0>,
+			<106 512 0 0>;
+			qcom,msm-bus-vector-dyn-vote;
 		qcom,cpp-fw-payload-info {
-			qcom,stripe-base = <140>;
-			qcom,plane-base = <125>;
+			qcom,stripe-base = <156>;
+			qcom,plane-base = <141>;
 			qcom,stripe-size = <27>;
 			qcom,plane-size = <5>;
 			qcom,fe-ptr-off = <5>;
@@ -319,26 +391,33 @@
 		reg-names = "cci";
 		interrupts = <0 50 0>;
 		interrupt-names = "cci";
+		mmagic-supply = <&stub_mmagic_camss>;
+		gdscr-supply = <&stub_camss_top>;
+		qcom,cam-vreg-name = "mmagic", "gdscr";
 		clocks = <&clock_gcc clk_gcc_camss_ispif_ahb_clk>,
-			<&clock_gcc clk_gcc_camss_top_ahb_clk>,
 			<&clock_gcc clk_cci_clk_src>,
 			<&clock_gcc clk_gcc_camss_cci_ahb_clk>,
 			<&clock_gcc clk_gcc_camss_cci_clk>,
-			<&clock_gcc clk_gcc_camss_ahb_clk>;
-		clock-names = "ispif_ahb_clk", "camss_top_ahb_clk",
-			"cci_src_clk", "cci_ahb_clk",
-			"cci_clk", "camss_ahb_clk";
-		qcom,clock-rates = <80000000 0 19200000 0 0 0>,
-						<80000000 0 37500000 0 0 0>;
+			<&clock_gcc clk_gcc_camss_ahb_clk>,
+			<&clock_gcc clk_gcc_camss_top_ahb_clk>;
+		clock-names = "ispif_ahb_clk", "cci_src_clk",
+			"cci_ahb_clk", "camss_cci_clk",
+			"camss_ahb_clk", "camss_top_ahb_clk";
+		qcom,clock-rates = <61540000 19200000 0 0 0 0>,
+				<61540000 37500000 0 0 0 0>;
 		pinctrl-names = "cci_default", "cci_suspend";
-		pinctrl-0 = <&cci0_active &cci1_active>;
-		pinctrl-1 = <&cci0_suspend &cci1_suspend>;
+			pinctrl-0 = <&cci0_active &cci1_active>;
+			pinctrl-1 = <&cci0_suspend &cci1_suspend>;
 		gpios = <&msm_gpio 29 0>,
-			<&msm_gpio 30 0>;
-		qcom,gpio-tbl-num = <0 1>;
-		qcom,gpio-tbl-flags = <1 1>;
+			<&msm_gpio 30 0>,
+			<&msm_gpio 103 0>,
+			<&msm_gpio 104 0>;
+		qcom,gpio-tbl-num = <0 1 2 3>;
+		qcom,gpio-tbl-flags = <1 1 1 1>;
 		qcom,gpio-tbl-label = "CCI_I2C_DATA0",
-					"CCI_I2C_CLK0";
+						"CCI_I2C_CLK0",
+						"CCI_I2C_DATA1",
+						"CCI_I2C_CLK1";
 		i2c_freq_100Khz: qcom,i2c_standard_mode {
 			status = "disabled";
 		};
