@@ -377,8 +377,6 @@ enum msm8916_functions {
 	MSM_MUX_atest_char2,
 	MSM_MUX_atest_char3,
 	MSM_MUX_atest_combodac,
-	MSM_MUX_atest_gpsadc0,
-	MSM_MUX_atest_gpsadc1,
 	MSM_MUX_atest_tsens,
 	MSM_MUX_backlight_en,
 	MSM_MUX_bimc_dte0,
@@ -523,8 +521,6 @@ static const char * const atest_combodac_groups[] = {
 	"gpio30", "gpio39", "gpio40", "gpio41", "gpio42", "gpio43", "gpio44",
 	"gpio45", "gpio46", "gpio47", "gpio48", "gpio69", "gpio107"
 };
-static const char * const atest_gpsadc0_groups[] = { "gpio7" };
-static const char * const atest_gpsadc1_groups[] = { "gpio18" };
 static const char * const atest_tsens_groups[] = { "gpio112" };
 static const char * const backlight_en_groups[] = { "gpio98" };
 static const char * const bimc_dte0_groups[] = { "gpio63", "gpio65" };
@@ -682,8 +678,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(atest_char2),
 	FUNCTION(atest_char3),
 	FUNCTION(atest_combodac),
-	FUNCTION(atest_gpsadc0),
-	FUNCTION(atest_gpsadc1),
 	FUNCTION(atest_tsens),
 	FUNCTION(backlight_en),
 	FUNCTION(bimc_dte0),
@@ -812,7 +806,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(15, blsp_spi4, blsp_i2c4, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(16, blsp_spi5, blsp_spi1_cs2, NA, atest_bbrx1, NA, NA, NA, NA, NA),
 	PINGROUP(17, blsp_spi5, blsp_spi2_cs2, NA, atest_bbrx0, NA, NA, NA, NA, NA),
-	PINGROUP(18, blsp_spi5, blsp_i2c5, NA, atest_gpsadc1, NA, NA, NA, NA, NA),
+	PINGROUP(18, blsp_spi5, blsp_i2c5, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(19, blsp_spi5, blsp_i2c5, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(20, blsp_spi6, NA, NA, NA, NA, NA, NA, qdss_ctitrig_in_a0, NA),
 	PINGROUP(21, blsp_spi6, NA, NA, NA, NA, NA, NA, qdss_ctitrig_in_b0, NA),
