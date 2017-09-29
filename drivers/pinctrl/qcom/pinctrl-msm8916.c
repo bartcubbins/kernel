@@ -589,7 +589,7 @@ static const char * const euro_us_groups[] = { "gpio120" };
 static const char * const ext_lpass_groups[] = { "gpio45" };
 static const char * const flash_strobe_groups[] = { "gpio31", "gpio32" };
 static const char * const gcc_gp1_clk_a_groups[] = { "gpio49" };
-static const char * const gcc_gp1_clk_b_groups[] = { "gpio97" };
+static const char * const gcc_gp1_clk_b_groups[] = { "gpio105" };
 static const char * const gcc_gp2_clk_a_groups[] = { "gpio50" };
 static const char * const gcc_gp2_clk_b_groups[] = { "gpio12" };
 static const char * const gcc_gp3_clk_a_groups[] = { "gpio51" };
@@ -885,7 +885,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(94, NA, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(95, NA, modem_tsync, nav_tsync, nav_pps, NA, NA, NA, NA, NA),
 	PINGROUP(96, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(97, gcc_gp1_clk_b, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(97, NA, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(98, NA, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(99, gsm0_tx0, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(100, gsm0_tx1, NA, NA, NA, NA, NA, NA, NA, NA),
@@ -893,7 +893,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(102, gsm1_tx1, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(103, ssbi_wtr0, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(104, ssbi_wtr0, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(105, ssbi_wtr1, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(105, ssbi_wtr1, gcc_gp1_clk_b, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(106, ssbi_wtr1, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(107, pbs0, NA, atest_combodac, NA, NA, NA, NA, NA, NA),
 	PINGROUP(108, pbs1, NA, NA, NA, NA, NA, NA, NA, NA),
