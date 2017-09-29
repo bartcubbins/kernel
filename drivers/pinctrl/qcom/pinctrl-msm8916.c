@@ -422,7 +422,6 @@ enum msm8916_functions {
 	MSM_MUX_kpsns0,
 	MSM_MUX_kpsns1,
 	MSM_MUX_kpsns2,
-	MSM_MUX_mag_int,
 	MSM_MUX_mdp_vsync,
 	MSM_MUX_modem_tsync,
 	MSM_MUX_m_voc,
@@ -558,7 +557,6 @@ static const char * const gyro_accl_groups[] = {"gpio115" };
 static const char * const kpsns0_groups[] = { "gpio107" };
 static const char * const kpsns1_groups[] = { "gpio108" };
 static const char * const kpsns2_groups[] = { "gpio109" };
-static const char * const mag_int_groups[] = { "gpio69" };
 static const char * const mdp_vsync_groups[] = { "gpio24", "gpio25" };
 static const char * const modem_tsync_groups[] = { "gpio95" };
 static const char * const m_voc_groups[] = { "gpio8", "gpio119" };
@@ -672,7 +670,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(kpsns0),
 	FUNCTION(kpsns1),
 	FUNCTION(kpsns2),
-	FUNCTION(mag_int),
 	FUNCTION(mdp_vsync),
 	FUNCTION(modem_tsync),
 	FUNCTION(m_voc),
