@@ -439,9 +439,6 @@ enum msm8916_functions {
 	MSM_MUX_nav_pps,
 	MSM_MUX_nav_tsync,
 	MSM_MUX_pa_indicator,
-	MSM_MUX_pbs0,
-	MSM_MUX_pbs1,
-	MSM_MUX_pbs2,
 	MSM_MUX_pri_mi2s,
 	MSM_MUX_pri_mi2s_ws,
 	MSM_MUX_qdss_ctitrig_in_a0,
@@ -590,9 +587,6 @@ static const char * const m_voc_groups[] = { "gpio8", "gpio119" };
 static const char * const nav_pps_groups[] = { "gpio95" };
 static const char * const nav_tsync_groups[] = { "gpio95" };
 static const char * const pa_indicator_groups[] = { "gpio86" };
-static const char * const pbs0_groups[] = { "gpio107" };
-static const char * const pbs1_groups[] = { "gpio108" };
-static const char * const pbs2_groups[] = { "gpio109" };
 static const char * const pri_mi2s_groups[] = {
 	"gpio113", "gpio114", "gpio115", "gpio116"
 };
@@ -719,9 +713,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(nav_pps),
 	FUNCTION(nav_tsync),
 	FUNCTION(pa_indicator),
-	FUNCTION(pbs0),
-	FUNCTION(pbs1),
-	FUNCTION(pbs2),
 	FUNCTION(pri_mi2s),
 	FUNCTION(pri_mi2s_ws),
 	FUNCTION(qdss_ctitrig_in_a0),
@@ -863,9 +854,9 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(104, ssbi_wtr0, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(105, ssbi_wtr1, gcc_gp1_clk_b, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(106, ssbi_wtr1, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(107, pbs0, NA, atest_combodac, NA, NA, NA, NA, NA, NA),
-	PINGROUP(108, pbs1, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(109, pbs2, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(107, NA, NA, atest_combodac, NA, NA, NA, NA, NA, NA),
+	PINGROUP(108, NA, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(109, NA, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(110, blsp_spi1_cs1, pri_mi2s_ws, NA, qdss_tracedata_b, NA, NA, NA, NA, NA),
 	PINGROUP(111, qdss_tracedata_b, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(112, sec_mi2s, NA, NA, NA, qdss_tracedata_a, NA, NA, NA, NA),
