@@ -566,7 +566,7 @@ static const char * const cam1_rst_groups[] = { "gpio35" };
 static const char * const cam1_standby_groups[] = { "gpio34" };
 static const char * const cam_mclk0_groups[] = { "gpio26" };
 static const char * const cam_mclk1_groups[] = { "gpio27" };
-static const char * const cci_async_groups[] = { "gpio33" };
+static const char * const cci_async_groups[] = { "gpio38" };
 static const char * const cci_i2c_groups[] = { "gpio29", "gpio30" };
 static const char * const cci_timer0_groups[] = { "gpio31" };
 static const char * const cci_timer1_groups[] = { "gpio32" };
@@ -820,7 +820,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(35, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(36, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA),
 	PINGROUP(37, blsp_spi3_cs2, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, NA),
-	PINGROUP(38, NA, adsp_ext, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(38, cci_async, adsp_ext, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(39, wcss_bt, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(40, wcss_wlan, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(41, wcss_wlan, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
