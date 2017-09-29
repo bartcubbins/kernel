@@ -369,11 +369,6 @@ static const unsigned int qdsd_data3_pins[] = { 133 };
 enum msm8916_functions {
 	MSM_MUX_adsp_ext,
 	MSM_MUX_alsp_int,
-	MSM_MUX_atest_char,
-	MSM_MUX_atest_char0,
-	MSM_MUX_atest_char1,
-	MSM_MUX_atest_char2,
-	MSM_MUX_atest_char3,
 	MSM_MUX_atest_combodac,
 	MSM_MUX_atest_tsens,
 	MSM_MUX_backlight_en,
@@ -507,11 +502,6 @@ static const char * const gpio_groups[] = {
 };
 static const char * const adsp_ext_groups[] = { "gpio38" };
 static const char * const alsp_int_groups[] = { "gpio113" };
-static const char * const atest_char_groups[] = { "gpio62" };
-static const char * const atest_char0_groups[] = { "gpio60" };
-static const char * const atest_char1_groups[] = { "gpio59" };
-static const char * const atest_char2_groups[] = { "gpio58" };
-static const char * const atest_char3_groups[] = { "gpio57" };
 static const char * const atest_combodac_groups[] = {
 	"gpio4", "gpio12", "gpio13", "gpio20", "gpio21", "gpio28", "gpio29",
 	"gpio30", "gpio39", "gpio40", "gpio41", "gpio42", "gpio43", "gpio44",
@@ -666,11 +656,6 @@ static const char * const webcam1_rst_groups[] = { "gpio28" };
 static const struct msm_function msm8916_functions[] = {
 	FUNCTION(adsp_ext),
 	FUNCTION(alsp_int),
-	FUNCTION(atest_char),
-	FUNCTION(atest_char0),
-	FUNCTION(atest_char1),
-	FUNCTION(atest_char2),
-	FUNCTION(atest_char3),
 	FUNCTION(atest_combodac),
 	FUNCTION(atest_tsens),
 	FUNCTION(backlight_en),
@@ -839,12 +824,12 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(54, uim2, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(55, uim2, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(56, uim2, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(57, uim1, atest_char3, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(58, uim1, atest_char2, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(59, uim1, atest_char1, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(60, uim1, atest_char0, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(57, uim1, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(58, uim1, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(59, uim1, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(60, uim1, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(61, uim_batt, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(62, atest_char, qdss_tracedata_a, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(62, NA, qdss_tracedata_a, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(63, cdc_pdm0, bimc_dte0, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(64, cdc_pdm0, bimc_dte1, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(65, cdc_pdm0, bimc_dte0, NA, NA, NA, NA, NA, NA, NA),
