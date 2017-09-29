@@ -462,8 +462,6 @@ enum msm8916_functions {
 	MSM_MUX_prng_rosc,
 	MSM_MUX_pwr_crypto_enabled_a,
 	MSM_MUX_pwr_crypto_enabled_b,
-	MSM_MUX_pwr_modem_enabled_a,
-	MSM_MUX_pwr_modem_enabled_b,
 	MSM_MUX_pwr_nav_enabled_a,
 	MSM_MUX_pwr_nav_enabled_b,
 	MSM_MUX_qdss_ctitrig_in_a0,
@@ -636,8 +634,6 @@ static const char * const pri_mi2s_ws_groups[] = { "gpio110" };
 static const char * const prng_rosc_groups[] = { "gpio43" };
 static const char * const pwr_crypto_enabled_a_groups[] = { "gpio35" };
 static const char * const pwr_crypto_enabled_b_groups[] = { "gpio115" };
-static const char * const pwr_modem_enabled_a_groups[] = { "gpio28" };
-static const char * const pwr_modem_enabled_b_groups[] = { "gpio113" };
 static const char * const pwr_nav_enabled_a_groups[] = { "gpio34" };
 static const char * const pwr_nav_enabled_b_groups[] = { "gpio114" };
 static const char * const qdss_ctitrig_in_a0_groups[] = { "gpio20" };
@@ -785,8 +781,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(prng_rosc),
 	FUNCTION(pwr_crypto_enabled_a),
 	FUNCTION(pwr_crypto_enabled_b),
-	FUNCTION(pwr_modem_enabled_a),
-	FUNCTION(pwr_modem_enabled_b),
 	FUNCTION(pwr_nav_enabled_a),
 	FUNCTION(pwr_nav_enabled_b),
 	FUNCTION(qdss_ctitrig_in_a0),
@@ -849,7 +843,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(25, mdp_vsync, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(26, cam_mclk0, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, NA),
 	PINGROUP(27, cam_mclk1, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
-	PINGROUP(28, pwr_modem_enabled_a, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
+	PINGROUP(28, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
 	PINGROUP(29, cci_i2c, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
 	PINGROUP(30, cci_i2c, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(31, cci_timer0, NA, NA, NA, NA, NA, NA, NA, NA),
@@ -934,7 +928,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(110, blsp_spi1_cs1, pri_mi2s_ws, NA, qdss_tracedata_b, NA, NA, NA, NA, NA),
 	PINGROUP(111, qdss_tracedata_b, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(112, sec_mi2s, NA, NA, NA, qdss_tracedata_a, NA, atest_tsens, NA, NA),
-	PINGROUP(113, pri_mi2s, NA, pwr_modem_enabled_b, NA, NA, NA, NA, NA, qdss_tracedata_a),
+	PINGROUP(113, pri_mi2s, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_a),
 	PINGROUP(114, pri_mi2s, pwr_nav_enabled_b, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
 	PINGROUP(115, pri_mi2s, pwr_crypto_enabled_b, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
 	PINGROUP(116, pri_mi2s, NA, NA, NA, NA, NA, NA, NA, NA),
