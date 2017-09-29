@@ -370,7 +370,6 @@ enum msm8916_functions {
 	MSM_MUX_adsp_ext,
 	MSM_MUX_alsp_int,
 	MSM_MUX_atest_combodac,
-	MSM_MUX_atest_tsens,
 	MSM_MUX_backlight_en,
 	MSM_MUX_blsp_i2c1,
 	MSM_MUX_blsp_i2c2,
@@ -505,7 +504,6 @@ static const char * const atest_combodac_groups[] = {
 	"gpio30", "gpio39", "gpio40", "gpio41", "gpio42", "gpio43", "gpio44",
 	"gpio45", "gpio46", "gpio47", "gpio48", "gpio69", "gpio107"
 };
-static const char * const atest_tsens_groups[] = { "gpio112" };
 static const char * const backlight_en_groups[] = { "gpio98" };
 static const char * const blsp_i2c1_groups[] = { "gpio2", "gpio3" };
 static const char * const blsp_i2c2_groups[] = { "gpio6", "gpio7" };
@@ -653,7 +651,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(adsp_ext),
 	FUNCTION(alsp_int),
 	FUNCTION(atest_combodac),
-	FUNCTION(atest_tsens),
 	FUNCTION(backlight_en),
 	FUNCTION(blsp_i2c1),
 	FUNCTION(blsp_i2c2),
@@ -873,7 +870,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(109, pbs2, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(110, blsp_spi1_cs1, pri_mi2s_ws, NA, qdss_tracedata_b, NA, NA, NA, NA, NA),
 	PINGROUP(111, qdss_tracedata_b, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(112, sec_mi2s, NA, NA, NA, qdss_tracedata_a, NA, atest_tsens, NA, NA),
+	PINGROUP(112, sec_mi2s, NA, NA, NA, qdss_tracedata_a, NA, NA, NA, NA),
 	PINGROUP(113, pri_mi2s, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_a),
 	PINGROUP(114, pri_mi2s, NA, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
 	PINGROUP(115, pri_mi2s, NA, NA, NA, NA, NA, NA, qdss_tracedata_a, NA),
