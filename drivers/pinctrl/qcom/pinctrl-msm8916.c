@@ -367,7 +367,6 @@ static const unsigned int qdsd_data3_pins[] = { 133 };
 	}
 
 enum msm8916_functions {
-	MSM_MUX_alsp_int,
 	MSM_MUX_atest_combodac,
 	MSM_MUX_backlight_en,
 	MSM_MUX_blsp_i2c1,
@@ -482,7 +481,6 @@ static const char * const gpio_groups[] = {
 	"gpio111", "gpio112", "gpio113", "gpio114", "gpio115", "gpio116",
 	"gpio117", "gpio118", "gpio119", "gpio120", "gpio121"
 };
-static const char * const alsp_int_groups[] = { "gpio113" };
 static const char * const atest_combodac_groups[] = {
 	"gpio4", "gpio12", "gpio13", "gpio20", "gpio21", "gpio28", "gpio29",
 	"gpio30", "gpio39", "gpio40", "gpio41", "gpio42", "gpio43", "gpio44",
@@ -619,7 +617,6 @@ static const char * const wcss_wlan_groups[] = {
 static const char * const webcam1_rst_groups[] = { "gpio28" };
 
 static const struct msm_function msm8916_functions[] = {
-	FUNCTION(alsp_int),
 	FUNCTION(atest_combodac),
 	FUNCTION(backlight_en),
 	FUNCTION(blsp_i2c1),
