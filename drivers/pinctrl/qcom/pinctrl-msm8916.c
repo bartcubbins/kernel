@@ -399,9 +399,6 @@ enum msm8916_functions {
 	MSM_MUX_cam_mclk1,
 	MSM_MUX_cci_async,
 	MSM_MUX_cci_i2c,
-	MSM_MUX_cci_timer0,
-	MSM_MUX_cci_timer1,
-	MSM_MUX_cci_timer2,
 	MSM_MUX_cdc_pdm0,
 	MSM_MUX_codec_mad,
 	MSM_MUX_display_5v,
@@ -541,9 +538,6 @@ static const char * const cam_mclk0_groups[] = { "gpio26" };
 static const char * const cam_mclk1_groups[] = { "gpio27" };
 static const char * const cci_async_groups[] = { "gpio38" };
 static const char * const cci_i2c_groups[] = { "gpio29", "gpio30" };
-static const char * const cci_timer0_groups[] = { "gpio31" };
-static const char * const cci_timer1_groups[] = { "gpio32" };
-static const char * const cci_timer2_groups[] = { "gpio33" };
 static const char * const cdc_pdm0_groups[] = {
 	"gpio63", "gpio64", "gpio65", "gpio66", "gpio67", "gpio68"
 };
@@ -665,9 +659,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(cam_mclk1),
 	FUNCTION(cci_async),
 	FUNCTION(cci_i2c),
-	FUNCTION(cci_timer0),
-	FUNCTION(cci_timer1),
-	FUNCTION(cci_timer2),
 	FUNCTION(cdc_pdm0),
 	FUNCTION(codec_mad),
 	FUNCTION(display_5v),
@@ -766,9 +757,9 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(28, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
 	PINGROUP(29, cci_i2c, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
 	PINGROUP(30, cci_i2c, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
-	PINGROUP(31, cci_timer0, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(32, cci_timer1, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(33, cci_timer2, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
+	PINGROUP(31, NA, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(32, NA, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(33, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(34, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(35, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(36, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA),
