@@ -397,7 +397,8 @@ enum msm8916_functions {
 	MSM_MUX_cam_mclk0,
 	MSM_MUX_cam_mclk1,
 	MSM_MUX_cci_async,
-	MSM_MUX_cci_i2c,
+	MSM_MUX_cci0_i2c,
+	MSM_MUX_cci1_i2c,
 	MSM_MUX_cdc_pdm0,
 	MSM_MUX_codec_mad,
 	MSM_MUX_display_5v,
@@ -530,7 +531,8 @@ static const char * const blsp_uim2_groups[] = { "gpio4", "gpio5" };
 static const char * const cam_mclk0_groups[] = { "gpio26" };
 static const char * const cam_mclk1_groups[] = { "gpio27" };
 static const char * const cci_async_groups[] = { "gpio38" };
-static const char * const cci_i2c_groups[] = { "gpio29", "gpio30" };
+static const char * const cci0_i2c_groups[] = { "gpio29", "gpio30" };
+static const char * const cci1_i2c_groups[] = { "gpio31", "gpio32" };
 static const char * const cdc_pdm0_groups[] = {
 	"gpio63", "gpio64", "gpio65", "gpio66", "gpio67", "gpio68"
 };
@@ -645,7 +647,8 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(cam_mclk0),
 	FUNCTION(cam_mclk1),
 	FUNCTION(cci_async),
-	FUNCTION(cci_i2c),
+	FUNCTION(cci0_i2c),
+	FUNCTION(cci1_i2c),
 	FUNCTION(cdc_pdm0),
 	FUNCTION(codec_mad),
 	FUNCTION(display_5v),
@@ -737,10 +740,10 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(26, cam_mclk0, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, NA),
 	PINGROUP(27, cam_mclk1, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(28, NA, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
-	PINGROUP(29, cci_i2c, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
-	PINGROUP(30, cci_i2c, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
-	PINGROUP(31, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(32, NA, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(29, cci0_i2c, NA, NA, NA, NA, NA, qdss_tracedata_b, NA, atest_combodac),
+	PINGROUP(30, cci0_i2c, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
+	PINGROUP(31, cci1_i2c, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(32, cci1_i2c, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(33, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(34, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
 	PINGROUP(35, NA, NA, NA, NA, NA, NA, NA, NA, qdss_tracedata_b),
