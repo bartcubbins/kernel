@@ -1137,7 +1137,7 @@ static int msm_ear_enable_put(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	int ret;
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct snd_soc_card *card = codec->component.card;
 	struct msm8952_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
 
@@ -1286,7 +1286,7 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 		     msm_auxpcm_rate_get, msm_auxpcm_rate_put),
 	SOC_ENUM_EXT("PROXY_RX Channels", msm_snd_enum[9],
 			msm_proxy_rx_ch_get, msm_proxy_rx_ch_put),
-	SOC_ENUM_EXT("MSM_Ear_Enable_States", msm_snd_enum[10],
+	SOC_ENUM_EXT("MSM_Ear_Enable_States", msm_snd_enum[13],
 			msm_ear_enable_get, msm_ear_enable_put),
 #ifdef CONFIG_ARCH_SONY_LOIRE
 	SOC_ENUM_EXT("AUX PCM SampleRate", msm8952_auxpcm_enum[0],
