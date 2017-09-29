@@ -423,8 +423,6 @@ enum msm8916_functions {
 	MSM_MUX_kpsns0,
 	MSM_MUX_kpsns1,
 	MSM_MUX_kpsns2,
-	MSM_MUX_ldo_en,
-	MSM_MUX_ldo_update,
 	MSM_MUX_mag_int,
 	MSM_MUX_mdp_vsync,
 	MSM_MUX_modem_tsync,
@@ -564,8 +562,6 @@ static const char * const gyro_accl_groups[] = {"gpio115" };
 static const char * const kpsns0_groups[] = { "gpio107" };
 static const char * const kpsns1_groups[] = { "gpio108" };
 static const char * const kpsns2_groups[] = { "gpio109" };
-static const char * const ldo_en_groups[] = { "gpio121" };
-static const char * const ldo_update_groups[] = { "gpio120" };
 static const char * const mag_int_groups[] = { "gpio69" };
 static const char * const mdp_vsync_groups[] = { "gpio24", "gpio25" };
 static const char * const modem_tsync_groups[] = { "gpio95" };
@@ -683,8 +679,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(kpsns0),
 	FUNCTION(kpsns1),
 	FUNCTION(kpsns2),
-	FUNCTION(ldo_en),
-	FUNCTION(ldo_update),
 	FUNCTION(mag_int),
 	FUNCTION(mdp_vsync),
 	FUNCTION(modem_tsync),
@@ -846,8 +840,8 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(117, sec_mi2s, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(118, sec_mi2s, NA, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(119, sec_mi2s, m_voc, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(120, blsp_spi3_cs1, ldo_update, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(121, sd_write, blsp_spi2_cs1, ldo_en, NA, NA, NA, NA, NA, NA),
+	PINGROUP(120, blsp_spi3_cs1, NA, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(121, sd_write, blsp_spi2_cs1, NA, NA, NA, NA, NA, NA, NA),
 	SDC_PINGROUP(sdc1_clk, 0x10a000, 13, 6),
 	SDC_PINGROUP(sdc1_cmd, 0x10a000, 11, 3),
 	SDC_PINGROUP(sdc1_data, 0x10a000, 9, 0),
