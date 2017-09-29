@@ -396,8 +396,6 @@ enum msm8916_functions {
 	MSM_MUX_blsp_uart2,
 	MSM_MUX_blsp_uim1,
 	MSM_MUX_blsp_uim2,
-	MSM_MUX_cam1_rst,
-	MSM_MUX_cam1_standby,
 	MSM_MUX_cam_mclk0,
 	MSM_MUX_cam_mclk1,
 	MSM_MUX_cci_async,
@@ -541,8 +539,6 @@ static const char * const blsp_uart2_groups[] = {
 };
 static const char * const blsp_uim1_groups[] = { "gpio0", "gpio1" };
 static const char * const blsp_uim2_groups[] = { "gpio4", "gpio5" };
-static const char * const cam1_rst_groups[] = { "gpio35" };
-static const char * const cam1_standby_groups[] = { "gpio34" };
 static const char * const cam_mclk0_groups[] = { "gpio26" };
 static const char * const cam_mclk1_groups[] = { "gpio27" };
 static const char * const cci_async_groups[] = { "gpio38" };
@@ -668,8 +664,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(blsp_uart2),
 	FUNCTION(blsp_uim1),
 	FUNCTION(blsp_uim2),
-	FUNCTION(cam1_rst),
-	FUNCTION(cam1_standby),
 	FUNCTION(cam_mclk0),
 	FUNCTION(cam_mclk1),
 	FUNCTION(cci_async),
