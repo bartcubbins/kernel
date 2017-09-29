@@ -413,7 +413,6 @@ enum msm8916_functions {
 	MSM_MUX_dsi_rst,
 	MSM_MUX_ebi0_wrcdc,
 	MSM_MUX_euro_us,
-	MSM_MUX_ext_lpass,
 	MSM_MUX_flash_strobe,
 	MSM_MUX_gcc_gp1_clk_a,
 	MSM_MUX_gcc_gp1_clk_b,
@@ -562,7 +561,6 @@ static const char * const dmic0_data_groups[] = { "gpio1" };
 static const char * const dsi_rst_groups[] = { "gpio25" };
 static const char * const ebi0_wrcdc_groups[] = { "gpio67" };
 static const char * const euro_us_groups[] = { "gpio120" };
-static const char * const ext_lpass_groups[] = { "gpio45" };
 static const char * const flash_strobe_groups[] = { "gpio31", "gpio32" };
 static const char * const gcc_gp1_clk_a_groups[] = { "gpio49" };
 static const char * const gcc_gp1_clk_b_groups[] = { "gpio105" };
@@ -687,7 +685,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(dsi_rst),
 	FUNCTION(ebi0_wrcdc),
 	FUNCTION(euro_us),
-	FUNCTION(ext_lpass),
 	FUNCTION(flash_strobe),
 	FUNCTION(gcc_gp1_clk_a),
 	FUNCTION(gcc_gp1_clk_b),
@@ -792,7 +789,7 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(42, wcss_wlan, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(43, wcss_wlan, NA, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA),
 	PINGROUP(44, wcss_wlan, NA, atest_combodac, NA, NA, NA, NA, NA, NA),
-	PINGROUP(45, wcss_fm, ext_lpass, qdss_tracectl_a, NA, atest_combodac, NA, NA, NA, NA),
+	PINGROUP(45, wcss_fm, NA, qdss_tracectl_a, NA, atest_combodac, NA, NA, NA, NA),
 	PINGROUP(46, wcss_fm, qdss_traceclk_a, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(47, wcss_bt, NA, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA),
 	PINGROUP(48, wcss_bt, qdss_tracedata_a, NA, atest_combodac, NA, NA, NA, NA, NA),
