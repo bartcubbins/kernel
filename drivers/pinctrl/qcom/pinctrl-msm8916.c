@@ -369,8 +369,6 @@ static const unsigned int qdsd_data3_pins[] = { 133 };
 enum msm8916_functions {
 	MSM_MUX_adsp_ext,
 	MSM_MUX_alsp_int,
-	MSM_MUX_atest_bbrx0,
-	MSM_MUX_atest_bbrx1,
 	MSM_MUX_atest_char,
 	MSM_MUX_atest_char0,
 	MSM_MUX_atest_char1,
@@ -509,8 +507,6 @@ static const char * const gpio_groups[] = {
 };
 static const char * const adsp_ext_groups[] = { "gpio38" };
 static const char * const alsp_int_groups[] = { "gpio113" };
-static const char * const atest_bbrx0_groups[] = { "gpio17" };
-static const char * const atest_bbrx1_groups[] = { "gpio16" };
 static const char * const atest_char_groups[] = { "gpio62" };
 static const char * const atest_char0_groups[] = { "gpio60" };
 static const char * const atest_char1_groups[] = { "gpio59" };
@@ -670,8 +666,6 @@ static const char * const webcam1_rst_groups[] = { "gpio28" };
 static const struct msm_function msm8916_functions[] = {
 	FUNCTION(adsp_ext),
 	FUNCTION(alsp_int),
-	FUNCTION(atest_bbrx0),
-	FUNCTION(atest_bbrx1),
 	FUNCTION(atest_char),
 	FUNCTION(atest_char0),
 	FUNCTION(atest_char1),
@@ -804,8 +798,8 @@ static const struct msm_pingroup msm8916_groups[] = {
 	PINGROUP(13, blsp_spi4, gcc_gp3_clk_b, NA, atest_combodac, NA, NA, NA, NA, NA),
 	PINGROUP(14, blsp_spi4, blsp_i2c4, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(15, blsp_spi4, blsp_i2c4, NA, NA, NA, NA, NA, NA, NA),
-	PINGROUP(16, blsp_spi5, blsp_spi1_cs2, NA, atest_bbrx1, NA, NA, NA, NA, NA),
-	PINGROUP(17, blsp_spi5, blsp_spi2_cs2, NA, atest_bbrx0, NA, NA, NA, NA, NA),
+	PINGROUP(16, blsp_spi5, blsp_spi1_cs2, NA, NA, NA, NA, NA, NA, NA),
+	PINGROUP(17, blsp_spi5, blsp_spi2_cs2, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(18, blsp_spi5, blsp_i2c5, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(19, blsp_spi5, blsp_i2c5, NA, NA, NA, NA, NA, NA, NA),
 	PINGROUP(20, blsp_spi6, NA, NA, NA, NA, NA, NA, qdss_ctitrig_in_a0, NA),
