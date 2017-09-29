@@ -407,7 +407,6 @@ enum msm8916_functions {
 	MSM_MUX_dsi_rst,
 	MSM_MUX_ebi0_wrcdc,
 	MSM_MUX_euro_us,
-	MSM_MUX_flash_strobe,
 	MSM_MUX_gcc_gp1_clk_a,
 	MSM_MUX_gcc_gp1_clk_b,
 	MSM_MUX_gcc_gp2_clk_a,
@@ -544,7 +543,6 @@ static const char * const dmic0_data_groups[] = { "gpio1" };
 static const char * const dsi_rst_groups[] = { "gpio25" };
 static const char * const ebi0_wrcdc_groups[] = { "gpio67" };
 static const char * const euro_us_groups[] = { "gpio120" };
-static const char * const flash_strobe_groups[] = { "gpio31", "gpio32" };
 static const char * const gcc_gp1_clk_a_groups[] = { "gpio49" };
 static const char * const gcc_gp1_clk_b_groups[] = { "gpio105" };
 static const char * const gcc_gp2_clk_a_groups[] = { "gpio50" };
@@ -657,7 +655,6 @@ static const struct msm_function msm8916_functions[] = {
 	FUNCTION(dsi_rst),
 	FUNCTION(ebi0_wrcdc),
 	FUNCTION(euro_us),
-	FUNCTION(flash_strobe),
 	FUNCTION(gcc_gp1_clk_a),
 	FUNCTION(gcc_gp1_clk_b),
 	FUNCTION(gcc_gp2_clk_a),
