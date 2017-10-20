@@ -5667,6 +5667,7 @@ static int smb1360_probe(struct i2c_client *client,
 			dev_err(&client->dev,
 				"request_irq for irq=%d  failed rc = %d\n",
 				client->irq, rc);
+			goto unregister_batt_psy;
 		}
 		enable_irq_wake(client->irq);
 	}
@@ -5799,6 +5800,8 @@ static int smb1360_probe(struct i2c_client *client,
 			smb1360_get_prop_batt_capacity(chip));
 
 	return 0;
+unregister_batt_psy:
+	power_supply_unregister(chip->batt_psy);
 fail_hw_init:
 	regulator_unregister(chip->otg_vreg.rdev);
 destroy_mutex:
@@ -5822,6 +5825,7 @@ static int smb1360_remove(struct i2c_client *client)
 #endif
 
 	regulator_unregister(chip->otg_vreg.rdev);
+	power_supply_unregister(chip->batt_psy);
 	wakeup_source_trash(&chip->smb1360_ws.source);
 	mutex_destroy(&chip->charging_disable_lock);
 	mutex_destroy(&chip->current_change_lock);
