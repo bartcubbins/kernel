@@ -169,6 +169,7 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 	 * bootloader. This needs to be done irresepective of whether
 	 * the lp11_init flag is set or not.
 	 */
+	usleep(6000);
 	if (pdata->panel_info.cont_splash_enabled ||
 		!pdata->panel_info.mipi.lp11_init) {
 		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
@@ -642,6 +643,9 @@ static int mdss_dsi_pinctrl_set_state(
 	struct pinctrl_state *pin_state;
 	int rc = -EFAULT;
 
+	if(mdss_display_splash_LK())
+		return 0;
+
 	if (IS_ERR_OR_NULL(ctrl_pdata->pin_res.pinctrl))
 		return PTR_ERR(ctrl_pdata->pin_res.pinctrl);
 
@@ -1113,10 +1117,6 @@ static int mdss_dsi_dfps_config(struct mdss_panel_data *pdata, int new_fps)
 		sctrl_pdata = mdss_dsi_get_other_ctrl(ctrl_pdata);
 	}
 
-	ctrl_pdata->dfps_status = true;
-	if (sctrl_pdata)
-		sctrl_pdata->dfps_status = true;
-
 	if (new_fps !=
 		ctrl_pdata->panel_data.panel_info.mipi.frame_rate) {
 		if (pdata->panel_info.dfps_update
@@ -1259,6 +1259,10 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 				  int event, void *arg)
 {
 	int rc = 0;
+
+	int i=0;
+	struct mdss_panel_info *pinfo = NULL;
+
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	int power_state;
 
@@ -1283,6 +1287,18 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 							pdata);
 		break;
 	case MDSS_EVENT_UNBLANK:
+		if(!is_reset_done)
+		{
+			pinfo = &(ctrl_pdata->panel_data.panel_info);
+			usleep(40000);
+			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
+				gpio_set_value((ctrl_pdata->rst_gpio),
+					pdata->panel_info.rst_seq[i]);
+				if (pdata->panel_info.rst_seq[++i])
+					usleep(pinfo->rst_seq[i] * 1000);
+			}
+			is_reset_done = 1;
+		}
 		if (ctrl_pdata->refresh_clk_rate)
 			rc = mdss_dsi_clk_refresh(pdata);
 		mdss_dsi_get_hw_revision(ctrl_pdata);
@@ -1876,6 +1892,30 @@ int dsi_panel_device_register(struct device_node *pan_node,
 
 	ctrl_pdata->bklt_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-bklight-en-gpio", 0);
+
+	ctrl_pdata->disp_p5_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+		"qcom,platform-p5-gpio", 0);
+	if (!gpio_is_valid(ctrl_pdata->disp_p5_gpio)) {
+		pr_err("%s:%d, Disp_p5 gpio not specified\n",
+			__func__, __LINE__);
+	}
+
+	ctrl_pdata->disp_n5_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+			"qcom,platform-n5-1-gpio", 0);
+	ctrl_pdata->bklt_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+			"qcom,platform-bklight-en-gpio", 0);
+
+	if (!gpio_is_valid(ctrl_pdata->disp_n5_gpio)) {
+		pr_err("%s:%d, Disp_n5 gpio not specified\n",
+			__func__, __LINE__);
+	}
+	ctrl_pdata->disp_te_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+		"qcom,platform-te-gpio", 0);
+	if (!gpio_is_valid(ctrl_pdata->disp_te_gpio)) {
+		pr_err("%s:%d, Disp_te gpio not specified\n",
+			__func__, __LINE__);
+	}
+
 	if (!gpio_is_valid(ctrl_pdata->bklt_en_gpio))
 		pr_info("%s: bklt_en gpio not specified\n", __func__);
 

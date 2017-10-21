@@ -43,11 +43,16 @@ struct msm_isp_bufq *msm_isp_get_bufq(
 {
 	struct msm_isp_bufq *bufq = NULL;
 	uint32_t bufq_index = bufq_handle & 0xFF;
+<<<<<<< HEAD
 
 	if ((bufq_handle == 0) ||
 		(bufq_index >= buf_mgr->num_buf_q) ||
 		(bufq_index >= BUF_MGR_NUM_BUF_Q) )
 		return NULL;
+=======
+	if (bufq_index > buf_mgr->num_buf_q)
+		return bufq;
+>>>>>>> de8bf819a469... 26.3.A.1.33
 
 	bufq = &buf_mgr->bufq[bufq_index];
 	if (bufq->bufq_handle == bufq_handle)
