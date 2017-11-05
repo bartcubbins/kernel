@@ -20,12 +20,12 @@
 			compatible = "arm,cortex-a53";
 			reg = <0x0>;
 			enable-method = "qcom,arm-cortex-acc";
-			qcom,acc = <&acc0>;
+			qcom,limits-info = <&mitigation_profile0>;
+			qcom,ea = <&ea0>;
 			next-level-cache = <&L2_1>;
 			L2_1: l2-cache {
 			      compatible = "arm,arch-cache";
 			      cache-level = <2>;
-			      power-domain = <&l2ccc_1>;
 			};
 		};
 
@@ -34,7 +34,8 @@
 			compatible = "arm,cortex-a53";
 			reg = <0x1>;
 			enable-method = "qcom,arm-cortex-acc";
-			qcom,acc = <&acc1>;
+			qcom,limits-info = <&mitigation_profile1>;
+			qcom,ea = <&ea1>;
 			next-level-cache = <&L2_1>;
 		};
 
@@ -43,7 +44,8 @@
 			compatible = "arm,cortex-a53";
 			reg = <0x2>;
 			enable-method = "qcom,arm-cortex-acc";
-			qcom,acc = <&acc2>;
+			qcom,limits-info = <&mitigation_profile2>;
+			qcom,ea = <&ea2>;
 			next-level-cache = <&L2_1>;
 		};
 
@@ -52,35 +54,34 @@
 			compatible = "arm,cortex-a53";
 			reg = <0x3>;
 			enable-method = "qcom,arm-cortex-acc";
-			qcom,acc = <&acc3>;
+			qcom,limits-info = <&mitigation_profile3>;
+			qcom,ea = <&ea3>;
 			next-level-cache = <&L2_1>;
 		};
 	};
 };
 
 &soc {
-	l2ccc_1: clock-controller@b011000 {
-		compatible = "qcom,8916-l2ccc";
-		reg = <0x0b011000 0x1000>;
-	};
+	qcom,msm-core@a0000 {
+		compatible = "qcom,apss-core-ea";
+		reg = <0xa0000 0x1000>;
+		qcom,low-hyst-temp = <10>;
+		qcom,high-hyst-temp = <5>;
+		
+		ea0: ea0 {
+			sensor = <&sensor_information5>;
+		};
 
-	acc0:clock-controller@b088000 {
-		compatible = "qcom,arm-cortex-acc";
-		reg = <0x0b088000 0x1000>;
-	};
+		ea1: ea1 {
+			sensor = <&sensor_information6>;
+		};
 
-	acc1:clock-controller@b098000 {
-		compatible = "qcom,arm-cortex-acc";
-		reg = <0x0b098000 0x1000>;
-	};
+		ea2: ea2 {
+			sensor = <&sensor_information7>;
+		};
 
-	acc2:clock-controller@b0a8000 {
-		compatible = "qcom,arm-cortex-acc";
-		reg = <0x0b0a8000 0x1000>;
-	};
-
-	acc3:clock-controller@b0b8000 {
-		compatible = "qcom,arm-cortex-acc";
-		reg = <0x0b0b8000 0x1000>;
+		ea3: ea3 {
+			sensor = <&sensor_information8>;
+		};
 	};
 };
