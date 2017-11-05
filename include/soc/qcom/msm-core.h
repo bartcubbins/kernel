@@ -13,9 +13,9 @@
 
 #ifndef __ARCH_ARM_MACH_MSM_CORE_H
 #define __ARCH_ARM_MACH_MSM_CORE_H
-#ifdef CONFIG_APSS_CORE_EA
-void set_cpu_throttled(struct cpumask *mask, bool throttling);
-#else
+//#ifdef CONFIG_APSS_CORE_EA
+//void set_cpu_throttled(struct cpumask *mask, bool throttling);
+//#else
 static inline void set_cpu_throttled(struct cpumask *mask, bool throttling) {}
-#endif
+//#endif
 #endif
