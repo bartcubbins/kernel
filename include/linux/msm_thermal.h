@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015,2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -31,6 +31,9 @@
 #define CPUFREQ_MAX_NO_MITIGATION     UINT_MAX
 #define CPUFREQ_MIN_NO_MITIGATION     0
 #define HOTPLUG_NO_MITIGATION(_mask)  cpumask_clear(_mask)
+
+#define IS_HI_THRESHOLD_SET(_val) (_val & 1)
+#define IS_LOW_THRESHOLD_SET(_val) (_val & 2)
 
 struct msm_thermal_data {
 	struct platform_device *pdev;
@@ -70,6 +73,7 @@ struct msm_thermal_data {
 	int32_t cx_phase_request_key;
 	int32_t vdd_mx_temp_degC;
 	int32_t vdd_mx_temp_hyst_degC;
+	int32_t vdd_mx_sensor_id;
 	int32_t therm_reset_temp_degC;
 };
 
@@ -79,22 +83,40 @@ enum sensor_id_type {
 	THERM_ID_MAX_NR,
 };
 
+enum msm_therm_progressive_state {
+	MSM_THERM_PROGRESSIVE_SAMPLING,
+	MSM_THERM_PROGRESSIVE_PAUSED,
+	MSM_THERM_PROGRESSIVE_MONITOR,
+	MSM_THERM_PROGRESSIVE_NR,
+};
+
+enum msm_therm_monitor_type {
+	MSM_THERM_MONITOR,
+	MSM_THERM_PROGRESSIVE,
+	MSM_THERM_NR,
+};
+
 struct threshold_info;
 struct therm_threshold {
-	int32_t                     sensor_id;
-	enum sensor_id_type         id_type;
-	struct sensor_threshold     threshold[MAX_THRESHOLD];
-	int32_t                     trip_triggered;
+	int32_t                          sensor_id;
+	enum sensor_id_type              id_type;
+	struct sensor_threshold          threshold[MAX_THRESHOLD];
+	int32_t                          trip_triggered;
 	void (*notify)(struct therm_threshold *);
-	struct threshold_info       *parent;
+	struct threshold_info            *parent;
+	enum msm_therm_progressive_state prog_state;
+	bool                             prog_trip_clear;
 	int32_t                          cur_state;
 };
 
 struct threshold_info {
-	uint32_t                     thresh_ct;
-	bool                         thresh_triggered;
-	struct list_head             list_ptr;
-	struct therm_threshold       *thresh_list;
+	uint32_t                    thresh_ct;
+	bool                        thresh_triggered;
+	struct list_head            list_ptr;
+	enum msm_therm_monitor_type algo_type;
+	struct mutex                lock;
+	long                        curr_max_temp;
+	struct therm_threshold      *thresh_list;
 };
 
 enum device_req_type {
@@ -158,6 +180,8 @@ extern int msm_thermal_get_freq_plan_size(uint32_t cluster,
 	unsigned int *table_len);
 extern int msm_thermal_get_cluster_freq_plan(uint32_t cluster,
 	unsigned int *table_ptr);
+extern int msm_thermal_get_cluster_voltage_plan(uint32_t cluster,
+	uint32_t *table_ptr);
 /**
  * sensor_mgr_init_threshold - Initialize thresholds data structure for
  *                             sensor(s) with high and low thresholds and
@@ -265,17 +289,22 @@ static inline int msm_thermal_set_frequency(uint32_t cpu, uint32_t freq,
 	return -ENOSYS;
 }
 static inline int msm_thermal_set_cluster_freq(uint32_t cluster, uint32_t freq,
-	bool is_max);
+	bool is_max)
 {
 	return -ENOSYS;
 }
 static inline int msm_thermal_get_freq_plan_size(uint32_t cluster,
-	unsigned int *table_len);
+	unsigned int *table_len)
 {
 	return -ENOSYS;
 }
 static inline int msm_thermal_get_cluster_freq_plan(uint32_t cluster,
-	unsigned int *table_ptr);
+	unsigned int *table_ptr)
+{
+	return -ENOSYS;
+}
+static inline int msm_thermal_get_cluster_voltage_plan(uint32_t cluster,
+	uint32_t *table_ptr)
 {
 	return -ENOSYS;
 }
