@@ -727,7 +727,7 @@
 		};
 	};
 
-	qcom,bcl {
+	bcl: qcom,bcl {
 		compatible = "qcom,bcl";
 		qcom,bcl-no-bms;
 	};
