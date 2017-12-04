@@ -92,9 +92,12 @@
 			 <&clock_gcc clk_gcc_mdss_axi_clk>,
 			 <&clock_gcc clk_mdp_clk_src>,
 			 <&clock_gcc_mdss clk_gcc_mdss_mdp_vote_clk>,
-			 <&clock_gcc clk_gcc_mdss_vsync_clk>;
+			 <&clock_gcc clk_gcc_mdss_vsync_clk>,
+			 <&clock_gcc clk_gcc_mdp_tbu_clk>,
+			 <&clock_gcc clk_gcc_mdp_rt_tbu_clk>;
 		clock-names = "iface_clk", "bus_clk", "core_clk_src",
-				"core_clk", "vsync_clk";
+				"core_clk", "vsync_clk", "tbu_clk",
+				"tbu_rt_clk";
 		qcom,vbif-settings = <0x030 0x0000006f>,
 				     <0x034 0x00001040>;
 		qcom,mdp-settings = <0x0000117C 0x0000AAAA>,
