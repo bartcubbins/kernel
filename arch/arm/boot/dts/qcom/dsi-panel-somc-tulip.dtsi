@@ -37,7 +37,7 @@
 		qcom,mdss-dsi-v-front-porch = <14>;
 		qcom,mdss-dsi-v-pulse-width = <1>;
 		qcom,mdss-dsi-h-left-border = <0>;
-		somc,mdss-dsi-id-read-command = [06 01 00 01 05 00 02 A1 00];
+		//somc,mdss-dsi-id-read-command = [06 01 00 01 05 00 02 A1 00]; /* CHECKME */
 		qcom,mdss-dsi-h-right-border = <0>;
 		qcom,mdss-dsi-v-top-border = <0>;
 		qcom,mdss-dsi-v-bottom-border = <0>;
