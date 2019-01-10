@@ -116,3 +116,8 @@ all.config
 
 # fetched Android config fragments
 android/configs/android-*.cfg
+
+# QCACLD-3.0
+drivers/staging/wlan-qc/fw-api
+drivers/staging/wlan-qc/qca-wifi-host-cmn
+drivers/staging/wlan-qc/qcacld-3.0
