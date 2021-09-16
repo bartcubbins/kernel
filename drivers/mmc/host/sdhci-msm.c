@@ -44,6 +44,7 @@
 #include "sdhci-msm.h"
 #include "sdhci-msm-ice.h"
 #include "cmdq_hci.h"
+#include <linux/cei_hw_id.h>
 
 #define QOS_REMOVE_DELAY_MS	10
 #define CORE_POWER		0x0
@@ -168,6 +169,8 @@
 #define NUM_TUNING_PHASES		16
 #define MAX_DRV_TYPES_SUPPORTED_HS200	4
 #define MSM_AUTOSUSPEND_DELAY_MS 100
+
+extern int CMDQ_QUIRK_PANIC_ON_ERROR_ENABLED;
 
 struct sdhci_msm_offset {
 	u32 CORE_MCI_DATA_CNT;
@@ -1838,6 +1841,7 @@ struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev,
 	u32 *ice_clk_table = NULL;
 	enum of_gpio_flags flags = OF_GPIO_ACTIVE_LOW;
 	const char *lower_bus_speed = NULL;
+	char *mb_id = get_cei_mb_id();
 
 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata) {
@@ -1846,8 +1850,16 @@ struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev,
 	}
 
 	pdata->status_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
+	if (!memcmp(mb_id, "SM22", 4) || !memcmp(mb_id, "SM42", 4))
+		flags = 0x0;
 	if (gpio_is_valid(pdata->status_gpio) && !(flags & OF_GPIO_ACTIVE_LOW))
 		pdata->caps2 |= MMC_CAP2_CD_ACTIVE_HIGH;
+
+	pdata->uim2_gpio = of_get_named_gpio(np, "uim2-gpios", 0);
+	if (!gpio_is_valid(pdata->uim2_gpio)) {
+		pr_err("## %s: gpio_is_valid(pdata->uim2_gpio)=%d: failure\n",
+			mmc_hostname(msm_host->mmc), pdata->uim2_gpio);
+	}
 
 	of_property_read_u32(np, "qcom,bus-width", &bus_width);
 	if (bus_width == 8)
@@ -2329,6 +2341,7 @@ static int sdhci_msm_vreg_disable(struct sdhci_msm_reg_data *vreg)
 
 	/* Never disable regulator marked as always_on */
 	if (vreg->is_enabled && !vreg->is_always_on) {
+	    if (!CMDQ_QUIRK_PANIC_ON_ERROR_ENABLED) {
 		ret = regulator_disable(vreg->reg);
 		if (ret) {
 			pr_err("%s: regulator_disable(%s) failed. ret=%d\n",
@@ -2345,6 +2358,15 @@ static int sdhci_msm_vreg_disable(struct sdhci_msm_reg_data *vreg)
 		ret = sdhci_msm_vreg_set_voltage(vreg, 0, vreg->high_vol_level);
 		if (ret)
 			goto out;
+	    } else {
+		if (vreg->lpm_sup) {
+			/* Put always_on regulator in LPM (low power mode) */
+			ret = sdhci_msm_vreg_set_optimum_mode(vreg,
+							      vreg->lpm_uA);
+			if (ret < 0)
+				goto out;
+		}
+	    }
 	} else if (vreg->is_enabled && vreg->is_always_on) {
 		if (vreg->lpm_sup) {
 			/* Put always_on regulator in LPM (low power mode) */
@@ -4672,6 +4694,13 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 					__func__, ret);
 			goto vreg_deinit;
 		}
+	}
+
+	if (gpio_is_valid(msm_host->pdata->uim2_gpio)) {
+		mmc_gpio_init_uim2(msm_host->mmc, msm_host->pdata->uim2_gpio);
+	} else {
+		pr_err("## %s: can't set uim2_gpio: %d\n", mmc_hostname(host->mmc),
+			msm_host->pdata->uim2_gpio);
 	}
 
 	if ((sdhci_readl(host, SDHCI_CAPABILITIES) & SDHCI_CAN_64BIT) &&

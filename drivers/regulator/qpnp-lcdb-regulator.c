@@ -611,6 +611,13 @@ static int qpnp_lcdb_enable_wa(struct qpnp_lcdb *lcdb)
 		return rc;
 	}
 
+	pr_debug("%s: LCDB_PWRUP_PWRDN_CTL_REG!!\n", __func__);
+	rc = qpnp_lcdb_secure_write(lcdb, lcdb->base + LCDB_PWRUP_PWRDN_CTL_REG, 0xF);
+	if (rc < 0) {
+	        pr_err("Failed to set PWRUP_PWRDN_CTL rc=%d\n", rc);
+	        return rc;
+	}
+
 	if (lcdb->wa_flags & NCP_SCP_DISABLE_WA) {
 		/*
 		 * delay to make sure that the MID pin – ie the

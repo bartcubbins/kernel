@@ -790,7 +790,11 @@ static long acc_ioctl(struct file *fp, unsigned code, unsigned long value)
 	case ACCESSORY_IS_START_REQUESTED:
 		return dev->start_requested;
 	case ACCESSORY_GET_AUDIO_MODE:
+		#if defined(CONFIG_MACH_SONY_VOYAGER)
+		return 0;
+		#else
 		return dev->audio_mode;
+		#endif
 	}
 	if (!src)
 		return -EINVAL;

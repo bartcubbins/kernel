@@ -797,6 +797,10 @@ static int cmdq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		cq_host->mrq_slot[DCMD_SLOT] = mrq;
 		/* DCMD's are always issued on a fixed slot */
 		tag = DCMD_SLOT;
+		if(cmdq_readl(cq_host, CQTDBR)) {
+			pr_err("mmc0: DCMD request, door bell is non zero = 0x%08x\n",
+					cmdq_readl(cq_host, CQTDBR));
+		}
 		goto ring_doorbell;
 	}
 
@@ -916,6 +920,10 @@ irqreturn_t cmdq_irq(struct mmc_host *mmc, int err)
 		__func__, status, err);
 
 	stat_err = status & (CQIS_RED | CQIS_GCE | CQIS_ICCE);
+
+	if (CMDQ_QUIRK_PANIC_ON_ERROR_ENABLED &&
+	    (status & CQIS_RED) && (cmdq_readl(cq_host, CQCRA) & R1_ERROR))
+		panic("MMC Generic Error in CMDQ: Panic as not sure what else to do!");
 
 	if (err || stat_err) {
 		err_info = cmdq_readl(cq_host, CQTERRI);
