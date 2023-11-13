@@ -1248,7 +1248,8 @@ config VIRTIO_REGULATOR
 
 config REGULATOR_MURRAY_CAMERA
 	tristate "Murray camera regulator intermediator driver"
-	depends on REGULATOR_WL2868C || REGULATOR_FAN53870
+	depends on I2C
+	select REGMAP_I2C
 	help
 	  This is the Murray camera regulator intermediator driver. This driver is
 	  used as an intermediator between camera framework and the physically
