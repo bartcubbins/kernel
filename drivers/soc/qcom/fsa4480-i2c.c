@@ -545,7 +545,7 @@ static int fsa4480_probe(struct i2c_client *i2c,
 		  fsa4480_usbc_analog_work_fn);
 
 	BLOCKING_INIT_NOTIFIER_HEAD(&fsa_priv->fsa4480_notifier);
-
+pr_info("fsa4480 probed\n");
 	return 0;
 
 err_supply:
