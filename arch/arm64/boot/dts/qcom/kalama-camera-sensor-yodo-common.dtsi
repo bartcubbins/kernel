@@ -304,7 +304,7 @@
 	dialog_pmic_0: slg51000@75 {
 		compatible = "dlg,slg51000";
 		reg = <0x75>;
-		dlg,cs = <&pm8550vs_g_gpios 4 0>;
+		dlg,cs-gpios = <&pm8550vs_g_gpios 4 0>;
 		vin7-supply = <&cam_pmic0_vin7_supply>;
 		off_time = <0 0 0 0 0 0 2000>;
 		status = "ok";
